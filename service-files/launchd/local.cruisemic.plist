@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>Label</key>
+        <string>local.cruisemic</string>
+        <key>ProgramArguments</key>
+        <array>
+            <string>/Users/admin/bin/cruisemic</string>
+            <string>-flush</string>
+            <string>-quiet</string>
+            <string>-udp</string>
+            <string>-port</string>
+            <string>5555</string>
+            <string>-name</string>
+            <string>KM1918</string>
+            <string>-interval</string>
+            <string>1s</string>
+            <string>-parser</string>
+            <string>Kilo Moana</string>
+            <string>-dir</string>
+            <string>/Users/admin/Desktop/underway/KM1918</string>
+        </array>
+        <key>KeepAlive</key>
+        <true/>
+        <key>ThrottleInterval</key>
+        <integer>30</integer>
+        <key>UserName</key>
+        <string>admin</string>
+        <key>GroupName</key>
+        <string>staff</string>
+        <key>StandardOutPath</key>
+        <string>/Users/admin/log/cruisemic.stdout</string>
+        <key>StandardErrorPath</key>
+        <string>/Users/admin/log/cruisemic.stderr</string>
+    </dict>
+</plist>
