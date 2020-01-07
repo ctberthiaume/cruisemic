@@ -65,10 +65,10 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 		Project:         project,
 		FileType:        "KiloMoana-thermo",
 		FileDescription: "Thermosalinograph",
-		Comments:        []string{"RFC3339", "Thermosalinograph Temperature at Bow", "Thermosalinograph Conductivity", "Salinity", "Thermosalinograph Temperature at Main Lab"},
+		Comments:        []string{"RFC3339", "Thermosalinograph Temperature at Main Lab", "Thermosalinograph Conductivity", "Salinity", "Thermosalinograph Temperature at Bow"},
 		Types:           []string{"time", "float", "float", "float", "float"},
 		Units:           []string{"NA", "C", "S/m", "PSU", "C"},
-		Headers:         []string{"time", "bow_temp", "conductivity", "salinity", "lab_temp"},
+		Headers:         []string{"time", "lab_temp", "conductivity", "salinity", "bow_temp"},
 	}
 	return p
 }

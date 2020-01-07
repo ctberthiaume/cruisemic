@@ -1,7 +1,7 @@
 # cruisemic
 
 A tool to capture and parse a research ship's underway data feed.
-Separate data feeds will be written in the format specified at https://github.com/armbrustlab/tsdataformat.
+Separate data feeds will be written in the format specified at [https://github.com/armbrustlab/tsdataformat](https://github.com/armbrustlab/tsdataformat).
 
 ## Install
 
