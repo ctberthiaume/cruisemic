@@ -26,7 +26,7 @@ func NewSallyRideParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["wicor"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "SallyRide-wicor",
+		FileType:        "wicor-geo",
 		FileDescription: "Sally Ride WICOR feed",
 		Comments:        []string{"RFC3339", "Surface PAR", "Latitude Decimal format", "Longitude Decimal format", "Ship's Course (GPS COG)", "Ship's Speed (GPS SOG)", "Thermosalinograph Temperature at Bow", "Thermosalinograph Conductivity (milliSiemens per centimeter with slope, offset correction)", "Salinity", "Thermosalinograph Temperature at Main Lab", "Fluorometer"},
 		Types:           []string{"time", "float", "float", "float", "float", "float", "float", "float", "float", "float", "float"},

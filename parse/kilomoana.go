@@ -27,8 +27,8 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["fluor"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "KiloMoana-fluor",
-		FileDescription: "Fluorescence",
+		FileType:        "fluor",
+		FileDescription: "Kilo Moana underway feed Fluorescence",
 		Comments:        []string{"RFC3339", "Fluorometer raw scale count"},
 		Types:           []string{"time", "float"},
 		Units:           []string{"NA", "count"},
@@ -36,8 +36,8 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["geo"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "KiloMoana-geo",
-		FileDescription: "Decimal degree coordinates",
+		FileType:        "geo",
+		FileDescription: "Kilo Moana underway feed decimal degree coordinates",
 		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format"},
 		Types:           []string{"time", "float", "float"},
 		Units:           []string{"NA", "deg", "deg"},
@@ -45,8 +45,8 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["heading"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "KiloMoana-heading",
-		FileDescription: "Cruise track direction and speed",
+		FileType:        "heading",
+		FileDescription: "Kilo Moana underway feed cruise track direction and speed",
 		Comments:        []string{"RFC3339", "Ship's Course (GPS COG)", "Ship's Speed (GPS SOG)"},
 		Types:           []string{"time", "float", "float"},
 		Units:           []string{"NA", "deg", "kn"},
@@ -54,8 +54,8 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["par"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "KiloMoana-par",
-		FileDescription: "PAR",
+		FileType:        "par",
+		FileDescription: "Kilo Moana underway feed PAR",
 		Comments:        []string{"RFC3339", "Surface PAR milliVolts"},
 		Types:           []string{"time", "float"},
 		Units:           []string{"NA", "mV"},
@@ -63,8 +63,8 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 	p.FeedCollection.Feeds["thermo"] = tsdata.Tsdata{
 		Project:         project,
-		FileType:        "KiloMoana-thermo",
-		FileDescription: "Thermosalinograph",
+		FileType:        "thermo",
+		FileDescription: "Kilo Moana underway feed thermosalinograph",
 		Comments:        []string{"RFC3339", "Thermosalinograph Temperature at Main Lab", "Thermosalinograph Conductivity", "Salinity", "Thermosalinograph Temperature at Bow"},
 		Types:           []string{"time", "float", "float", "float", "float"},
 		Units:           []string{"NA", "C", "S/m", "PSU", "C"},
