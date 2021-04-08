@@ -10,7 +10,7 @@ import (
 // Parser is the interface that groups the ParseLine and RateLimit used to
 // parser a ship's underway feed.
 type Parser interface {
-	ParseLine(line string) Data
+	ParseLine(line string) (Data, error)
 	Headers() map[string]string
 	Limit(d *Data)
 	Recent(feed string) time.Time

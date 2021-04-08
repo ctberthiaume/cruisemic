@@ -24,30 +24,33 @@ func TestBasicParserRegistry(t *testing.T) {
 }
 
 type testBasicLineData struct {
-	name     string
-	input    string
-	expected Data
+	name        string
+	input       string
+	expected    Data
+	expectError bool
 }
 
 func TestBasicLines(t *testing.T) {
 	t0, _ := time.Parse(time.RFC3339, "2017-06-17T00:30:29.365000000Z")
 	testData := []testBasicLineData{
-		{"empty line", "", Data{}},
-		{"bad feed1 ID", "2017-06-17T00:30:29.365000000Z 10 feedNone", Data{}},
-		{"bad column count", "2017-06-17T00:30:29.365000000Z", Data{}},
-		{"bad feed1 date", "201a7-06-17T00:30:29.365000000Z 10 feed1", Data{}},
-		{"bad feed1 value", "201a7-06-17T00:30:29.365000000Z 1a0 feed1", Data{}},
+		{"empty line", "", Data{}, false},
+		{"bad feed1 ID", "2017-06-17T00:30:29.365000000Z 10 feedNone", Data{}, false},
+		{"bad column count", "2017-06-17T00:30:29.365000000Z", Data{}, false},
+		{"bad feed1 date", "201a7-06-17T00:30:29.365000000Z 10 feed1", Data{}, true},
+		{"bad feed1 value", "201a7-06-17T00:30:29.365000000Z 1a0 feed1", Data{}, true},
 		{
 			"good line feed1",
 			"2017-06-17T00:30:29.365000000Z 10 feed1",
 			Data{Feed: "feed1", Time: t0, Values: []string{"10"}},
+			false,
 		},
-		{"bad feed2 ID", "10 feed2None", Data{}},
-		{"bad feed2 value", "1a0 feed2", Data{}},
+		{"bad feed2 ID", "10 feed2None", Data{}, false},
+		{"bad feed2 value", "1a0 feed2", Data{}, true},
 		{
 			"good line feed2",
 			"10 feed2",
 			Data{Feed: "feed2", Values: []string{"10"}},
+			false,
 		},
 	}
 	for _, tt := range testData {
@@ -59,7 +62,12 @@ func createBasicLinesTest(t *testing.T, tt testBasicLineData) func(*testing.T) {
 	assert := assert.New(t)
 	return func(t *testing.T) {
 		p := NewBasicParser("basic", 0)
-		actual := p.ParseLine(tt.input)
+		actual, err := p.ParseLine(tt.input)
+		if !tt.expectError {
+			assert.Nil(err, tt.name)
+		} else {
+			assert.NotNil(err, tt.name)
+		}
 		assert.Equal(tt.expected.Feed, actual.Feed, tt.name)
 		assert.Equal(tt.expected.Values, actual.Values, tt.name)
 		assert.Equal(tt.expected.Time.Format(time.RFC3339Nano), actual.Time.Format(time.RFC3339Nano), tt.name)
@@ -85,15 +93,17 @@ func TestBasicTimeOnUntimedLines(t *testing.T) {
 	p := NewBasicParser("test", 0)
 
 	// Parse a feed2 line, should not have a time, but is otherwise parsed OK.
-	d := p.ParseLine("10 feed2")
+	d, err := p.ParseLine("10 feed2")
+	assert.Nil(err, "first feed2 returns nil error")
 	assert.Equal("feed2", d.Feed, "first feed2 has Feed")
 	assert.Equal([]string{"10"}, d.Values, "first feed2 has Values")
 	assert.True(d.Time.IsZero(), "first feed2 has no time")
 	// Parse a good feed1 line to set last seen time. This should be the time
 	// returned when parsing feed2 immediately after.
 	t0, _ := time.Parse(time.RFC3339, "2017-06-17T00:30:29.365000000Z")
-	_ = p.ParseLine("2017-06-17T00:30:29.365000000Z 10 feed1")
-	d = p.ParseLine("10 feed2")
+	_, _ = p.ParseLine("2017-06-17T00:30:29.365000000Z 10 feed1")
+	d, err = p.ParseLine("10 feed2")
+	assert.Nil(err, "second feed2 returns nil error")
 	assert.Equal("feed2", d.Feed, "second feed2 has Feed")
 	assert.Equal([]string{"10"}, d.Values, "second feed2 has Values")
 	assert.Equal(t0.Format(time.RFC3339Nano), d.Time.Format(time.RFC3339Nano), "second feed2 has correct time")
@@ -114,7 +124,7 @@ func BenchmarkBasicLines(b *testing.B) {
 		scanner := bufio.NewScanner(strings.NewReader(string(b[:n])))
 		for scanner.Scan() {
 			line := scanner.Text()
-			d = p.ParseLine(line)
+			d, _ = p.ParseLine(line)
 			p.Limit(&d)
 		}
 	}

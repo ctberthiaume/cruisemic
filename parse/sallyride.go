@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"log"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -37,17 +37,17 @@ func NewSallyRideParser(project string, interval time.Duration) Parser {
 }
 
 // ParseLine parses and saves a single underway feed line.
-func (p *SallyRideParser) ParseLine(line string) (d Data) {
+func (p *SallyRideParser) ParseLine(line string) (d Data, err error) {
 	var t time.Time
 	if len(line) == 0 {
-		return d
+		return
 	}
 	if !strings.HasPrefix(line, "$WICOR") {
-		return d
+		return
 	}
 	fields := strings.Split(line, ",")
 	if len(fields) < 7 {
-		return d
+		return
 	}
 	v := make(map[string]string)
 FIELDSCAN:
@@ -58,10 +58,9 @@ FIELDSCAN:
 			// PAR, course, speed, conductivity, salinity, fluorometer
 			if _, ok := v[code]; !ok {
 				// For all of these values only consider the first one we see
-				_, err := strconv.ParseFloat(fields[i-1], 64)
+				_, err = strconv.ParseFloat(fields[i-1], 64)
 				if err != nil {
-					log.Printf("format: bad %v: field=%q: %v", code, fields[i-1], err)
-					return d
+					return d, fmt.Errorf("SallyRideParser: bad %v: field=%q: %v", code, fields[i-1], err)
 				}
 				v[code] = fields[i-1]
 				if code == "FL2" {
@@ -73,9 +72,8 @@ FIELDSCAN:
 			// Latitude
 			if _, ok := v[code]; !ok {
 				// Only consider first latitude we see
-				if err := geo.CheckLat(fields[i-1]); err != nil {
-					log.Printf("format: bad lat: field=%v: %v", fields[i-1], err)
-					return d
+				if err = geo.CheckLat(fields[i-1]); err != nil {
+					return d, fmt.Errorf("SallyRideParser: bad lat: field=%v: %v", fields[i-1], err)
 				}
 				v[code] = fields[i-1]
 			}
@@ -83,9 +81,8 @@ FIELDSCAN:
 			// Longitude
 			if _, ok := v[code]; !ok {
 				// Only consider first longitude we see
-				if err := geo.CheckLon(fields[i-1]); err != nil {
-					log.Printf("format: bad lon: field=%v: %v", fields[i-1], err)
-					return d
+				if err = geo.CheckLon(fields[i-1]); err != nil {
+					return d, fmt.Errorf("SallyRideParser: bad lon: field=%v: %v", fields[i-1], err)
 				}
 				v[code] = fields[i-1]
 			}
@@ -95,8 +92,7 @@ FIELDSCAN:
 				// Only consider first timestamp we see
 				stamp, err := strconv.ParseInt(fields[i-1], 0, 64)
 				if err != nil {
-					log.Printf("format: bad timestamp: field=%v: %v", fields[i-1], err)
-					return d
+					return d, fmt.Errorf("SallyRideParser: bad timestamp: field=%v: %v", fields[i-1], err)
 				}
 				t = time.Unix(stamp, 0).UTC()
 				v[code] = fields[i-1]
@@ -104,8 +100,7 @@ FIELDSCAN:
 		case "TT2":
 			_, err := strconv.ParseFloat(fields[i-1], 64)
 			if err != nil {
-				log.Printf("format: bad %v: field=%v: %v", code, fields[i-1], err)
-				return d
+				return d, fmt.Errorf("SallyRideParser: bad %v: field=%v: %v", code, fields[i-1], err)
 			}
 			_, ok := v["TT2-Bow"]
 			if !ok {
@@ -114,8 +109,7 @@ FIELDSCAN:
 				_, ok := v["TT2-Lab"]
 				if ok {
 					// This shouldn't happen, should break before seeing 3 TT2 values
-					log.Printf("format: saw too many TT2 values")
-					return d
+					return d, fmt.Errorf("SallyRideParser: saw too many TT2 values")
 				}
 				v["TT2-Lab"] = fields[i-1] // Second TT2 is Lab temp
 			}
@@ -126,8 +120,8 @@ FIELDSCAN:
 		d.Values = []string{v["PA2"], v["LA1"], v["LO1"], v["CR1"], v["SP1"], v["TT2-Bow"], v["TC2"], v["SA2"], v["TT2-Lab"], v["FL2"]}
 		d.Time = t
 	} else {
-		log.Printf("format: missing fields for line at %v", t.Format(time.RFC3339Nano))
+		return d, fmt.Errorf("SallyRideParser: missing fields for line at %v", t.Format(time.RFC3339Nano))
 	}
 	p.Limit(&d)
-	return d
+	return d, nil
 }

@@ -8,12 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testData struct {
-	name     string
-	input    Data
-	expected string
-}
-
 func TestFilledData(t *testing.T) {
 	assert := assert.New(t)
 	t0, _ := time.Parse(time.RFC3339, "2019-08-21T00:00:00.5Z")

@@ -50,9 +50,6 @@ func TestWhitelistAllChars(t *testing.T) {
 	assert.Equal(len(expected), nclean)
 }
 
-var nclean int
-var clean []byte
-
 func TestWhitelistEmpty(t *testing.T) {
 	assert := assert.New(t)
 	b := []byte("")

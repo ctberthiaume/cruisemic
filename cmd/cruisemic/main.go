@@ -17,7 +17,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "0.2.1"
+var version = "0.2.2"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var rawFlag = flag.Bool("raw", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -50,13 +50,15 @@ func parseLines(r io.Reader, parser parse.Parser, storer storage.Storer) error {
 			return fmt.Errorf("error writing to feed %v: %v", "raw", err)
 		}
 
-		d := parser.ParseLine(line)
+		d, err := parser.ParseLine(line)
 		if d.OK() {
 			// Save data if properly parsed and not throttled
 			err = storer.WriteString(d.Feed, d.Line("\t")+"\n")
 			if err != nil {
 				return fmt.Errorf("error writing to feed %v: %v", d.Feed, err)
 			}
+		} else if err != nil {
+			log.Printf("%v", err)
 		}
 
 		if *flushFlag {

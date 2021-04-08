@@ -2,7 +2,6 @@ package parse
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -45,24 +44,23 @@ func NewBasicParser(project string, interval time.Duration) Parser {
 // delimited columns. The first should be RFC3339 formatted datetime. The
 // second should be a floating point number. All Data returned have a feed type
 // of "basic".
-func (p *BasicParser) ParseLine(line string) (d Data) {
-	var err error
+func (p *BasicParser) ParseLine(line string) (d Data, err error) {
 	if len(line) == 0 {
-		return d
+		return
 	}
 	fields := strings.Fields(line)
 	switch {
 	case len(fields) == 3 && fields[2] == "feed1":
 		if d, err = p.parseFeed1(fields); err != nil {
-			log.Printf("BasicParser: bad feed1 line: %v: line=%q", err, line)
+			return d, fmt.Errorf("BasicParser: bad feed1 line: %v: line=%q", err, line)
 		}
 	case len(fields) == 2 && fields[1] == "feed2":
 		if d, err = p.parseFeed2(fields); err != nil {
-			log.Printf("BasicParser: bad feed2 line: %v: line=%q", err, line)
+			return d, fmt.Errorf("BasicParser: bad feed2 line: %v: line=%q", err, line)
 		}
 	}
 	p.Limit(&d)
-	return d
+	return d, nil
 }
 
 func (p *BasicParser) parseFeed1(fields []string) (d Data, err error) {

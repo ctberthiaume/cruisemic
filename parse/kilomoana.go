@@ -2,7 +2,6 @@ package parse
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -74,40 +73,39 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 }
 
 // ParseLine parses and saves a single underway feed line.
-func (p *KiloMoanaParser) ParseLine(line string) (d Data) {
-	var err error
+func (p *KiloMoanaParser) ParseLine(line string) (d Data, err error) {
 	if len(line) == 0 {
-		return d
+		return
 	}
 	if strings.HasPrefix(line, "$GPGGA") {
 		fields := strings.Split(line, ",")
 		if d, err = p.parseGeo(fields); err != nil {
-			log.Printf("format: bad GPGGA: %v: line=%q", err, line)
+			return d, fmt.Errorf("KiloMoanaParser: bad GPGGA: %v: line=%q", err, line)
 		}
 	} else if strings.HasPrefix(line, "$GPVTG") {
 		fields := strings.Split(line, ",")
 		if d, err = p.parseHeading(fields); err != nil {
-			log.Printf("format: bad GPVTG: %v: line=%q", err, line)
+			return d, fmt.Errorf("KiloMoanaParser: bad GPVTG: %v: line=%q", err, line)
 		}
 	} else {
 		fields := strings.Fields(line)
 		switch {
 		case len(fields) >= 7 && fields[6] == "flor":
 			if d, err = p.parseFluor(fields); err != nil {
-				log.Printf("format: bad fluor: %v: line=%q", err, line)
+				return d, fmt.Errorf("KiloMoanaParser: bad fluor: %v: line=%q", err, line)
 			}
 		case len(fields) >= 7 && fields[6] == "met":
 			if d, err = p.parsePar(fields); err != nil {
-				log.Printf("format: bad met: %v: line=%q", err, line)
+				return d, fmt.Errorf("KiloMoanaParser: bad met: %v: line=%q", err, line)
 			}
 		case len(fields) >= 7 && fields[6] == "uthsl":
 			if d, err = p.parseThermo(fields); err != nil {
-				log.Printf("format: bad uthsl: %v: line=%q", err, line)
+				return d, fmt.Errorf("KiloMoanaParser: bad uthsl: %v: line=%q", err, line)
 			}
 		}
 	}
 	p.Limit(&d)
-	return d
+	return d, nil
 }
 
 func (p *KiloMoanaParser) parseDate(fields []string) (t time.Time, err error) {
