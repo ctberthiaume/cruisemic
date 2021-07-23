@@ -75,10 +75,14 @@ type GeoThermDef struct {
 	SalinityCol    string
 }
 
-func (g GeoThermDef) GeoThermDefString() string {
-	s, err := json.Marshal(g)
+func (g GeoThermDef) GeoThermDefString(feedPrefix string, feedSuffix string) (j string, err error) {
+	def := g
+	def.GeoFeed = feedPrefix + def.GeoFeed + feedSuffix
+	def.ThermoFeed = feedPrefix + def.ThermoFeed + feedSuffix
+	b, err := json.Marshal(def)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return string(s)
+	j = string(b)
+	return
 }

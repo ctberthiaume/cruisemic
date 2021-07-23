@@ -14,7 +14,7 @@ type Parser interface {
 	Headers() map[string]string
 	Limit(d *Data)
 	Recent(feed string) time.Time
-	GeoThermDefString() string
+	GeoThermDefString(feedPrefix string, feedSuffix string) (string, error)
 }
 
 // ParserRegistry allows underway parser constructors to be retrieved by name.

@@ -17,7 +17,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.2.5"
+var version = "v0.2.6"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var rawFlag = flag.Bool("raw", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -101,8 +101,14 @@ func main() {
 		os.Exit(1)
 	}
 	parser := parserFact(*nameFlag, *intervalFlag)
+	feedPrefix := *nameFlag + "-"
+	feedSuffix := ".tab"
 	feeds := parser.Headers()
-	storer, err := storage.NewDiskStorage(*dirFlag, *nameFlag+"-", ".tab", feeds, parser.GeoThermDefString(), 0)
+	metadata, err := parser.GeoThermDefString(feedPrefix, feedSuffix)
+	if err != nil {
+		log.Printf("warning: could not create metadata file content, %v\n", err)
+	}
+	storer, err := storage.NewDiskStorage(*dirFlag, feedPrefix, feedSuffix, feeds, metadata, 0)
 	if err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
