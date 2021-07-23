@@ -72,12 +72,13 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 	}
 
 	p.GeoThermDef = GeoThermDef{
-		GeoFeed:        "geo",
-		LatitudeCol:    "lat",
-		LongitudeCol:   "lon",
-		ThermoFeed:     "thermo",
-		TemperatureCol: "bow_temp",
-		SalinityCol:    "salinity",
+		GeoFeed:         "geo",
+		LatitudeCol:     "lat",
+		LongitudeCol:    "lon",
+		ThermoFeed:      "thermo",
+		TemperatureCol:  "bow_temp",
+		SalinityCol:     "salinity",
+		ConductivityCol: "conductivity",
 	}
 
 	return p

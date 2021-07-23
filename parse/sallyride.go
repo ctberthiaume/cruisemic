@@ -36,12 +36,13 @@ func NewSallyRideParser(project string, interval time.Duration) Parser {
 	}
 
 	p.GeoThermDef = GeoThermDef{
-		GeoFeed:        "wicor",
-		LatitudeCol:    "lat",
-		LongitudeCol:   "lon",
-		ThermoFeed:     "wicor",
-		TemperatureCol: "bow_temp",
-		SalinityCol:    "salinity",
+		GeoFeed:         "wicor",
+		LatitudeCol:     "lat",
+		LongitudeCol:    "lon",
+		ThermoFeed:      "wicor",
+		TemperatureCol:  "bow_temp",
+		SalinityCol:     "salinity",
+		ConductivityCol: "conductivity",
 	}
 
 	return p

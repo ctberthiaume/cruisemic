@@ -67,12 +67,13 @@ func (d FeedCollection) Headers() map[string]string {
 // GeoThermDef defines where to find the most basic oceanographic underway data
 // in a cruisemic output folder
 type GeoThermDef struct {
-	GeoFeed        string
-	LatitudeCol    string
-	LongitudeCol   string
-	ThermoFeed     string
-	TemperatureCol string
-	SalinityCol    string
+	GeoFeed         string
+	LatitudeCol     string
+	LongitudeCol    string
+	ThermoFeed      string
+	TemperatureCol  string
+	SalinityCol     string
+	ConductivityCol string
 }
 
 func (g GeoThermDef) GeoThermDefString(feedPrefix string, feedSuffix string) (j string, err error) {
