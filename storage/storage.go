@@ -28,7 +28,7 @@ type DiskStorage struct {
 // contain a leading dot. feeds should be used to declare any feed files that
 // will be written too, and to associate feed names with any header text
 // to be written. Header text will only be written if the file is empty.
-func NewDiskStorage(dir string, filePrefix string, fileExt string, feeds map[string]string, buffSize int) (*DiskStorage, error) {
+func NewDiskStorage(dir string, filePrefix string, fileExt string, feeds map[string]string, metadata string, buffSize int) (*DiskStorage, error) {
 	if buffSize <= 0 {
 		buffSize = 1 << 16 // 65536
 	}
@@ -50,6 +50,11 @@ func NewDiskStorage(dir string, filePrefix string, fileExt string, feeds map[str
 			return nil, err
 		}
 	}
+	// Write metadata file
+	if err := store.writeMetadata(metadata); err != nil {
+		return nil, err
+	}
+
 	return store, nil
 }
 
@@ -143,6 +148,21 @@ func (store *DiskStorage) writeHeader(feed string, header string) error {
 		if err := store.WriteString(feed, header); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// writeMetadata writes a data set metadata file named "metadata".
+func (store *DiskStorage) writeMetadata(content string) error {
+	path := filepath.Join(store.dir, "metadata")
+	of, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer of.Close()
+	_, err = of.WriteString(content)
+	if err != nil {
+		return err
 	}
 	return nil
 }

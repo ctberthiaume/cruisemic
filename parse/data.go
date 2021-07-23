@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -61,4 +62,23 @@ func (d FeedCollection) Headers() map[string]string {
 		h[feed] = data.Header()
 	}
 	return h
+}
+
+// GeoThermDef defines where to find the most basic oceanographic underway data
+// in a cruisemic output folder
+type GeoThermDef struct {
+	GeoFeed        string
+	LatitudeCol    string
+	LongitudeCol   string
+	ThermoFeed     string
+	TemperatureCol string
+	SalinityCol    string
+}
+
+func (g GeoThermDef) GeoThermDefString() string {
+	s, err := json.Marshal(g)
+	if err != nil {
+		panic(err)
+	}
+	return string(s)
 }

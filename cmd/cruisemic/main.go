@@ -17,7 +17,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.2.4"
+var version = "v0.2.5"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var rawFlag = flag.Bool("raw", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -102,7 +102,7 @@ func main() {
 	}
 	parser := parserFact(*nameFlag, *intervalFlag)
 	feeds := parser.Headers()
-	storer, err := storage.NewDiskStorage(*dirFlag, *nameFlag+"-", ".tab", feeds, 0)
+	storer, err := storage.NewDiskStorage(*dirFlag, *nameFlag+"-", ".tab", feeds, parser.GeoThermDefString(), 0)
 	if err != nil {
 		log.Fatalf("error: %v\n", err)
 	}

@@ -34,7 +34,7 @@ func TestStorageTestSuite(t *testing.T) {
 }
 
 func (suite *StorageTestSuite) TestDirCreation() {
-	store, err := NewDiskStorage(suite.storeDir, "", "", nil, 0)
+	store, err := NewDiskStorage(suite.storeDir, "", "", nil, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -48,7 +48,7 @@ func (suite *StorageTestSuite) TestDirCreation() {
 }
 
 func (suite *StorageTestSuite) TestFeedCreation() {
-	store, err := NewDiskStorage(suite.storeDir, "", "", nil, 0)
+	store, err := NewDiskStorage(suite.storeDir, "", "", nil, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -68,7 +68,7 @@ func (suite *StorageTestSuite) TestHeader() {
 		"headerLF": "header\ntext\n",
 	}
 
-	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, 0)
+	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -96,7 +96,7 @@ func (suite *StorageTestSuite) TestHeader() {
 	}
 
 	// Make sure headers don't get rewritten when files reopened.
-	store, err = NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, 0)
+	store, err = NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -126,7 +126,7 @@ func (suite *StorageTestSuite) TestHeader() {
 
 func (suite *StorageTestSuite) TestWriteStringWithHeader() {
 	feeds := map[string]string{"feed": "header\ntext"}
-	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, 0)
+	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", feeds, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -151,7 +151,7 @@ func (suite *StorageTestSuite) TestWriteStringWithHeader() {
 }
 
 func (suite *StorageTestSuite) TestWriteString() {
-	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, 0)
+	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -176,7 +176,7 @@ func (suite *StorageTestSuite) TestWriteString() {
 }
 
 func (suite *StorageTestSuite) TestWriteStringTwice() {
-	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, 0)
+	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -206,7 +206,7 @@ func (suite *StorageTestSuite) TestWriteStringTwice() {
 }
 
 func (suite *StorageTestSuite) TestFlush() {
-	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, 0)
+	store, err := NewDiskStorage(suite.storeDir, "test-", ".tab", nil, "", 0)
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return

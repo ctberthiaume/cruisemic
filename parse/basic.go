@@ -13,6 +13,7 @@ import (
 type BasicParser struct {
 	FeedCollection
 	Throttle
+	GeoThermDef
 }
 
 // NewBasicParser creates a pointer to a BasicParser.

@@ -14,6 +14,7 @@ import (
 type SallyRideParser struct {
 	FeedCollection
 	Throttle
+	GeoThermDef
 }
 
 // NewSallyRideParser returns a pointer to a SallyRideParser struct. project is
@@ -33,6 +34,16 @@ func NewSallyRideParser(project string, interval time.Duration) Parser {
 		Units:           []string{"NA", "uE/s/m^2", "deg", "deg", "deg", "kn", "C", "mS/cm", "PSU", "C", "ug/L"},
 		Headers:         []string{"time", "par", "lat", "lon", "heading", "speed", "bow_temp", "conductivity", "salinity", "lab_temp", "fluor"},
 	}
+
+	p.GeoThermDef = GeoThermDef{
+		GeoFeed:        "wicor",
+		LatitudeCol:    "lat",
+		LongitudeCol:   "lon",
+		ThermoFeed:     "wicor",
+		TemperatureCol: "bow_temp",
+		SalinityCol:    "salinity",
+	}
+
 	return p
 }
 

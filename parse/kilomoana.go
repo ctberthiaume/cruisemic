@@ -14,6 +14,7 @@ import (
 type KiloMoanaParser struct {
 	FeedCollection
 	Throttle
+	GeoThermDef
 }
 
 // NewKiloMoanaParser returns a pointer to a KiloMoanaParser struct. project is
@@ -69,6 +70,16 @@ func NewKiloMoanaParser(project string, interval time.Duration) Parser {
 		Units:           []string{"NA", "C", "S/m", "PSU", "C"},
 		Headers:         []string{"time", "lab_temp", "conductivity", "salinity", "bow_temp"},
 	}
+
+	p.GeoThermDef = GeoThermDef{
+		GeoFeed:        "geo",
+		LatitudeCol:    "lat",
+		LongitudeCol:   "lon",
+		ThermoFeed:     "thermo",
+		TemperatureCol: "bow_temp",
+		SalinityCol:    "salinity",
+	}
+
 	return p
 }
 
