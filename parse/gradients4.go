@@ -29,10 +29,10 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 		Project:         project,
 		FileType:        "geo",
 		FileDescription: "Gradients 4 Thompson underway feed",
-		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format", "TSG temperature", "TSG conductivity", "TSG salinity", "PAR"},
-		Types:           []string{"time", "float", "float", "float", "float", "float", "float"},
-		Units:           []string{"NA", "deg", "deg", "C", "S/m", "PSU", "mV"},
-		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity", "par"},
+		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format", "TSG temperature", "TSG conductivity", "TSG salinity"},
+		Types:           []string{"time", "float", "float", "float", "float", "float"},
+		Units:           []string{"NA", "deg", "deg", "C", "S/m", "PSU"},
+		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity"},
 	}
 
 	p.GeoThermDef = GeoThermDef{
@@ -57,7 +57,7 @@ func (p *Gradients4Parser) ParseLine(line string) (d Data, err error) {
 	t := time.Now().UTC()
 
 	fields := strings.Fields(line)
-	if len(fields) != 6 {
+	if len(fields) != 5 {
 		return d, fmt.Errorf("Gradients4Parser: incorrect field count %d: line=%q: time=%s", len(fields), line, t.Format(time.RFC3339Nano))
 	}
 
@@ -66,7 +66,6 @@ func (p *Gradients4Parser) ParseLine(line string) (d Data, err error) {
 	tempstr := strings.Replace(fields[2], ",", "", -1)
 	condstr := strings.Replace(fields[3], ",", "", -1)
 	salstr := strings.Replace(fields[4], ",", "", -1)
-	parstr := strings.Replace(fields[5], ",", "", -1)
 
 	// Latitude
 	if err = geo.CheckLat(latstr); err != nil {
@@ -88,13 +87,9 @@ func (p *Gradients4Parser) ParseLine(line string) (d Data, err error) {
 	if _, err = strconv.ParseFloat(salstr, 64); err != nil {
 		return d, fmt.Errorf("Gradients4Parser: bad sal: field=%v: %v", salstr, err)
 	}
-	// PAR
-	if _, err = strconv.ParseFloat(parstr, 64); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad par: field=%v: %v", parstr, err)
-	}
 
 	d.Feed = "geo"
-	d.Values = []string{latstr, lonstr, tempstr, condstr, salstr, parstr}
+	d.Values = []string{latstr, lonstr, tempstr, condstr, salstr}
 	d.Time = t
 
 	p.Limit(&d)

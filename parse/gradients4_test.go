@@ -28,13 +28,12 @@ func TestG4Lines(t *testing.T) {
 	testData := []testG4LineData{
 		{"empty line", "", Data{}, false},
 		{"bad field count", "40.10, 120.23, 28.1, 4.4, 30.3, 1.04, 20.0, 30.0", Data{}, true},
-		{"bad lat", "240.10, 120.23, 28.1, 4.4, 30.3, 1.04", Data{}, true},
-		{"bad lon", "40.10, 420.23, 28.1, 4.4, 30.3, 1.04", Data{}, true},
-		{"bad temp", "40.10, 120.23, 2a8.1, 4.4, 30.3, 1.04", Data{}, true},
-		{"bad cond", "40.10, 120.23, 28.1, 4a.4, 30.3, 1.04", Data{}, true},
-		{"bad sal", "40.10, 120.23, 28.1, 4.4, 3a0.3, 1.04", Data{}, true},
-		{"bad par", "40.10, 120.23, 28.1, 4.4, 30.3, 1a.04", Data{}, true},
-		{"good line", "40.10, 120.23, 28.1, 4.4, 30.3, 1.04", Data{Feed: "geo", Values: []string{"40.10", "120.23", "28.1", "4.4", "30.3", "1.04"}}, false},
+		{"bad lat", "240.10, 120.23, 28.1, 4.4, 30.3", Data{}, true},
+		{"bad lon", "40.10, 420.23, 28.1, 4.4, 30.3", Data{}, true},
+		{"bad temp", "40.10, 120.23, 2a8.1, 4.4, 30.3", Data{}, true},
+		{"bad cond", "40.10, 120.23, 28.1, 4a.4, 30.3", Data{}, true},
+		{"bad sal", "40.10, 120.23, 28.1, 4.4, 3a0.3", Data{}, true},
+		{"good line", "40.10, 120.23, 28.1, 4.4, 30.3", Data{Feed: "geo", Values: []string{"40.10", "120.23", "28.1", "4.4", "30.3"}}, false},
 	}
 	for _, tt := range testData {
 		t.Run(tt.name, createG4LinesTest(t, tt))
