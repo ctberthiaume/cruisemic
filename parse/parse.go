@@ -10,8 +10,9 @@ import (
 // Parser is the interface that groups the ParseLine and RateLimit used to
 // parser a ship's underway feed.
 type Parser interface {
-	ParseLine(line string) (Data, error)
+	ParseLine(line string) error
 	Headers() map[string]string
+	Flush() Data
 	Limit(d *Data)
 	Recent(feed string) time.Time
 	GeoThermDefString(feedPrefix string, feedSuffix string) (string, error)
@@ -19,9 +20,6 @@ type Parser interface {
 
 // ParserRegistry allows underway parser constructors to be retrieved by name.
 var ParserRegistry = map[string]func(string, time.Duration) Parser{
-	"Kilo Moana": NewKiloMoanaParser,
-	"Basic":      NewBasicParser,
-	"Sally Ride": NewSallyRideParser,
 	"Gradients4": NewGradients4Parser,
 }
 

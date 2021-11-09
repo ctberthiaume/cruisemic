@@ -33,7 +33,7 @@ var quietFlag = flag.Bool("quiet", false, "Suppress UDP informational status on 
 var versionFlag = flag.Bool("version", false, "Print version and exit")
 var flushFlag = flag.Bool("flush", false, "Flush data to disk after every parsed feed line")
 
-func parseLines(r io.Reader, parser parse.Parser, storer storage.Storer) error {
+func parseLines(r io.Reader, parser parse.Parser, storer storage.Storer) (err error) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		b := scanner.Bytes()
@@ -45,20 +45,22 @@ func parseLines(r io.Reader, parser parse.Parser, storer storage.Storer) error {
 		line := string(b[:n])
 
 		// Save raw text for each line
-		err := storer.WriteString("raw", line+"\n")
+		err = storer.WriteString("raw", line+"\n")
 		if err != nil {
 			return fmt.Errorf("error writing to feed %v: %v", "raw", err)
 		}
 
-		d, err := parser.ParseLine(line)
+		err = parser.ParseLine(line)
+		if err != nil {
+			log.Printf("%v", err)
+		}
+		d := parser.Flush()
 		if d.OK() {
 			// Save data if properly parsed and not throttled
 			err = storer.WriteString(d.Feed, d.Line("\t")+"\n")
 			if err != nil {
 				return fmt.Errorf("error writing to feed %v: %v", d.Feed, err)
 			}
-		} else if err != nil {
-			log.Printf("%v", err)
 		}
 
 		if *flushFlag {

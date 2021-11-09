@@ -15,6 +15,9 @@ type Gradients4Parser struct {
 	FeedCollection
 	Throttle
 	GeoThermDef
+	i      int       // line number in current stanza, e.g. $SEAFLOW is 1, geo is 2
+	t      time.Time // time of current stanza
+	values []string  // accumulated values for this stanza
 }
 
 // NewGradients4Parser returns a pointer to a Gradients4Parser struct. project is
@@ -24,6 +27,7 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 	p := &Gradients4Parser{
 		FeedCollection: NewFeedCollection(),
 		Throttle:       NewThrottle(interval),
+		values:         []string{},
 	}
 	p.FeedCollection.Feeds["geo"] = tsdata.Tsdata{
 		Project:         project,
@@ -49,54 +53,70 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 }
 
 // ParseLine parses and saves a single underway feed line.
-func (p *Gradients4Parser) ParseLine(line string) (d Data, err error) {
-	if len(line) == 0 {
+func (p *Gradients4Parser) ParseLine(line string) (err error) {
+	if line == "$SEAFLOW" {
+		// Reset state in case this interrupted a previous incomplete stanza
+		p.i = 1
+		p.t = time.Now().UTC()
+		p.values = []string{}
 		return
 	}
 
-	t := time.Now().UTC()
-
-	fields := strings.Fields(line)
-	if len(fields) != 6 {
-		return d, fmt.Errorf("Gradients4Parser: incorrect field count %d: line=%q: time=%s", len(fields), line, t.Format(time.RFC3339Nano))
+	if p.i == 0 {
+		// Haven't started a new stanza with $SEAFLOW line yet
+		return
 	}
 
-	latstr := strings.Replace(fields[0], ",", "", -1)
-	lonstr := strings.Replace(fields[1], ",", "", -1)
-	tempstr := strings.Replace(fields[2], ",", "", -1)
-	condstr := strings.Replace(fields[3], ",", "", -1)
-	salstr := strings.Replace(fields[4], ",", "", -1)
-	parstr := strings.Replace(fields[5], ",", "", -1)
+	p.i++
 
-	// Latitude
-	if err = geo.CheckLat(latstr); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad lat: field=%v: %v", latstr, err)
-	}
-	// Longitude
-	if err = geo.CheckLon(lonstr); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad lon: field=%v: %v", lonstr, err)
-	}
-	// Temperature
-	if _, err = strconv.ParseFloat(tempstr, 64); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad temp: field=%v: %v", tempstr, err)
-	}
-	// Conductivity
-	if _, err = strconv.ParseFloat(condstr, 64); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad cond: field=%v: %v", condstr, err)
-	}
-	// Salinity
-	if _, err = strconv.ParseFloat(salstr, 64); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad sal: field=%v: %v", salstr, err)
-	}
-	// PAR
-	if _, err = strconv.ParseFloat(parstr, 64); err != nil {
-		return d, fmt.Errorf("Gradients4Parser: bad par: field=%v: %v", parstr, err)
+	switch {
+	case p.i == 2:
+		// Geo
+		fields := strings.Split(line, ",")
+		if len(fields) != 4 {
+			err = fmt.Errorf("Gradients4Parser: bad GPGGA field count: %v: line=%q", len(fields), line)
+			p.values = append(p.values, "NA", "NA")
+		} else {
+			latdd, latddErr := geo.GGALat2DD(fields[0], fields[1])
+			if latddErr != nil {
+				err = fmt.Errorf("Gradients4Parser: bad GPGGA lat: %v: line=%q", latddErr, line)
+				latdd = "NA"
+			}
+			londd, londdErr := geo.GGALon2DD(fields[2], fields[3])
+			if londdErr != nil {
+				err = fmt.Errorf("Gradients4Parser: bad GPGGA lon: %v: line=%q", londdErr, line)
+				londd = "NA"
+			}
+			p.values = append(p.values, latdd, londd)
+		}
+	default:
+		// All other values
+		_, floatErr := strconv.ParseFloat(line, 64)
+		if floatErr != nil {
+			err = fmt.Errorf("Gradients4Parser: bad float: line=%q", line)
+			line = "NA"
+		}
+		p.values = append(p.values, line)
 	}
 
-	d.Feed = "geo"
-	d.Values = []string{latstr, lonstr, tempstr, condstr, salstr, parstr}
-	d.Time = t
+	// Return last parsing error
+	return
+}
 
-	p.Limit(&d)
-	return d, nil
+func (p *Gradients4Parser) Flush() (d Data) {
+	// fmt.Printf("%v %v %v\n", p.t, len(p.values), p.values)
+	if len(p.values) == 6 {
+		// Prepare complete Data struct
+		d.Feed = "geo"
+		d.Time = p.t
+		d.Values = p.values
+		p.Limit(&d)
+
+		// Reset state
+		p.i = 0
+		p.t = time.Now().UTC()
+		p.values = []string{}
+		// fmt.Printf("%v\n", d)
+	}
+	return d
 }
