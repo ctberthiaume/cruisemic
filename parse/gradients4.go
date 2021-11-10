@@ -3,7 +3,6 @@ package parse
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ctberthiaume/cruisemic/geo"
@@ -71,23 +70,32 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 
 	switch {
 	case p.i == 2:
-		// Geo
-		fields := strings.Split(line, ",")
-		if len(fields) != 4 {
-			err = fmt.Errorf("Gradients4Parser: bad GPGGA field count: %v: line=%q", len(fields), line)
-			p.values = append(p.values, "NA", "NA")
+		// Latitude
+		if len(line) < 2 {
+			err = fmt.Errorf("Gradients4Parser: bad GPGGA latitude: line=%q", line)
+			p.values = append(p.values, "NA")
 		} else {
-			latdd, latddErr := geo.GGALat2DD(fields[0], fields[1])
+			latdd, latddErr := geo.GGALat2DD(line[:len(line)-1], line[len(line)-1:])
 			if latddErr != nil {
 				err = fmt.Errorf("Gradients4Parser: bad GPGGA lat: %v: line=%q", latddErr, line)
 				latdd = "NA"
+			} else {
+				p.values = append(p.values, latdd)
 			}
-			londd, londdErr := geo.GGALon2DD(fields[2], fields[3])
+		}
+	case p.i == 3:
+		// Longitude
+		if len(line) < 2 {
+			err = fmt.Errorf("Gradients4Parser: bad GPGGA longitude: line=%q", line)
+			p.values = append(p.values, "NA")
+		} else {
+			londd, londdErr := geo.GGALon2DD(line[:len(line)-1], line[len(line)-1:])
 			if londdErr != nil {
 				err = fmt.Errorf("Gradients4Parser: bad GPGGA lon: %v: line=%q", londdErr, line)
 				londd = "NA"
+			} else {
+				p.values = append(p.values, londd)
 			}
-			p.values = append(p.values, latdd, londd)
 		}
 	default:
 		// All other values
