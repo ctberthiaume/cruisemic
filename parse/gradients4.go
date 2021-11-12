@@ -3,6 +3,7 @@ package parse
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ctberthiaume/cruisemic/geo"
@@ -32,10 +33,10 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 		Project:         project,
 		FileType:        "geo",
 		FileDescription: "Gradients 4 Thompson underway feed",
-		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format", "TSG temperature", "TSG conductivity", "TSG salinity", "PAR"},
-		Types:           []string{"time", "float", "float", "float", "float", "float", "float"},
-		Units:           []string{"NA", "deg", "deg", "C", "S/m", "PSU", "mV"},
-		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity", "par"},
+		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format", "TSG temperature", "TSG conductivity", "TSG salinity"},
+		Types:           []string{"time", "float", "float", "float", "float", "float"},
+		Units:           []string{"NA", "deg", "deg", "C", "S/m", "PSU"},
+		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity"},
 	}
 
 	p.GeoThermDef = GeoThermDef{
@@ -44,7 +45,7 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 		LongitudeCol:    "lon",
 		ThermoFeed:      "geo",
 		TemperatureCol:  "temp",
-		SalinityCol:     "salinity",
+		SalinityCol:     "NA",
 		ConductivityCol: "conductivity",
 	}
 
@@ -68,14 +69,17 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 
 	p.i++
 
+	// Trim leading and trailing whitespace
+	clean := strings.TrimSpace(line)
+
 	switch {
 	case p.i == 2:
 		// Latitude
-		if len(line) < 2 {
+		if len(clean) < 2 {
 			err = fmt.Errorf("Gradients4Parser: bad GPGGA latitude: line=%q", line)
 			p.values = append(p.values, "NA")
 		} else {
-			latdd, latddErr := geo.GGALat2DD(line[:len(line)-1], line[len(line)-1:])
+			latdd, latddErr := geo.GGALat2DD(clean[:len(clean)-1], clean[len(clean)-1:])
 			if latddErr != nil {
 				err = fmt.Errorf("Gradients4Parser: bad GPGGA lat: %v: line=%q", latddErr, line)
 				latdd = "NA"
@@ -85,11 +89,11 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 		}
 	case p.i == 3:
 		// Longitude
-		if len(line) < 2 {
+		if len(clean) < 2 {
 			err = fmt.Errorf("Gradients4Parser: bad GPGGA longitude: line=%q", line)
 			p.values = append(p.values, "NA")
 		} else {
-			londd, londdErr := geo.GGALon2DD(line[:len(line)-1], line[len(line)-1:])
+			londd, londdErr := geo.GGALon2DD(clean[:len(clean)-1], clean[len(clean)-1:])
 			if londdErr != nil {
 				err = fmt.Errorf("Gradients4Parser: bad GPGGA lon: %v: line=%q", londdErr, line)
 				londd = "NA"
@@ -99,12 +103,12 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 		}
 	default:
 		// All other values
-		_, floatErr := strconv.ParseFloat(line, 64)
+		_, floatErr := strconv.ParseFloat(clean, 64)
 		if floatErr != nil {
 			err = fmt.Errorf("Gradients4Parser: bad float: line=%q", line)
-			line = "NA"
+			clean = "NA"
 		}
-		p.values = append(p.values, line)
+		p.values = append(p.values, clean)
 	}
 
 	// Return last parsing error
@@ -113,7 +117,7 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 
 func (p *Gradients4Parser) Flush() (d Data) {
 	// fmt.Printf("%v %v %v\n", p.t, len(p.values), p.values)
-	if len(p.values) == 6 {
+	if len(p.values) == 5 {
 		// Prepare complete Data struct
 		d.Feed = "geo"
 		d.Time = p.t
