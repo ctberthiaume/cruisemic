@@ -12,24 +12,25 @@ import (
 
 // Gradients4Parser is a parser for Gradients 4 Thompson underway feed lines.
 type Gradients4Parser struct {
-	FeedCollection
 	Throttle
-	GeoThermDef
-	i      int       // line number in current stanza, e.g. $SEAFLOW is 1, geo is 2
-	t      time.Time // time of current stanza
-	values []string  // accumulated values for this stanza
+	i        int               // line number in current stanza, e.g. $SEAFLOW is 1, geo is 2
+	t        time.Time         // time of current stanza
+	values   map[string]string // accumulated values for this stanza by column name
+	errors   []error
+	now      func() time.Time
+	metadata tsdata.Tsdata
 }
 
 // NewGradients4Parser returns a pointer to a Gradients4Parser struct. project is
 // the project or cruise name. interval is the per-feed rate limiting interval
 // in seconds.
-func NewGradients4Parser(project string, interval time.Duration) Parser {
+func NewGradients4Parser(project string, interval time.Duration, now func() time.Time) Parser {
 	p := &Gradients4Parser{
-		FeedCollection: NewFeedCollection(),
-		Throttle:       NewThrottle(interval),
-		values:         []string{},
+		Throttle: NewThrottle(interval),
+		values:   make(map[string]string),
+		now:      now,
 	}
-	p.FeedCollection.Feeds["geo"] = tsdata.Tsdata{
+	p.metadata = tsdata.Tsdata{
 		Project:         project,
 		FileType:        "geo",
 		FileDescription: "Gradients 4 Thompson underway feed",
@@ -39,31 +40,14 @@ func NewGradients4Parser(project string, interval time.Duration) Parser {
 		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity"},
 	}
 
-	p.GeoThermDef = GeoThermDef{
-		GeoFeed:         "geo",
-		LatitudeCol:     "lat",
-		LongitudeCol:    "lon",
-		ThermoFeed:      "geo",
-		TemperatureCol:  "temp",
-		SalinityCol:     "NA",
-		ConductivityCol: "conductivity",
-	}
-
 	return p
 }
 
 // ParseLine parses and saves a single underway feed line.
-func (p *Gradients4Parser) ParseLine(line string) (err error) {
+func (p *Gradients4Parser) ParseLine(line string) (d Data) {
 	if line == "$SEAFLOW" {
-		// Reset state in case this interrupted a previous incomplete stanza
-		p.i = 1
-		p.t = time.Now().UTC()
-		p.values = []string{}
-		return
-	}
-
-	if p.i == 0 {
-		// Haven't started a new stanza with $SEAFLOW line yet
+		d = p.createLastStanzaData()
+		p.reset()
 		return
 	}
 
@@ -73,62 +57,90 @@ func (p *Gradients4Parser) ParseLine(line string) (err error) {
 	clean := strings.TrimSpace(line)
 
 	switch {
-	case p.i == 2:
+	case p.i == 1:
 		// Latitude
 		if len(clean) < 2 {
-			err = fmt.Errorf("Gradients4Parser: bad GPGGA latitude: line=%q", line)
-			p.values = append(p.values, "NA")
+			p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad GPGGA latitude: line=%q", line))
 		} else {
 			latdd, latddErr := geo.GGALat2DD(clean[:len(clean)-1], clean[len(clean)-1:])
 			if latddErr != nil {
-				err = fmt.Errorf("Gradients4Parser: bad GPGGA lat: %v: line=%q", latddErr, line)
-				latdd = "NA"
+				p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad GPGGA lat: %v: line=%q", latddErr, line))
 			} else {
-				p.values = append(p.values, latdd)
+				p.values["lat"] = latdd
 			}
 		}
-	case p.i == 3:
+	case p.i == 2:
 		// Longitude
 		if len(clean) < 2 {
-			err = fmt.Errorf("Gradients4Parser: bad GPGGA longitude: line=%q", line)
-			p.values = append(p.values, "NA")
+			p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad GPGGA longitude: line=%q", line))
 		} else {
 			londd, londdErr := geo.GGALon2DD(clean[:len(clean)-1], clean[len(clean)-1:])
 			if londdErr != nil {
-				err = fmt.Errorf("Gradients4Parser: bad GPGGA lon: %v: line=%q", londdErr, line)
-				londd = "NA"
+				p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad GPGGA lon: %v: line=%q", londdErr, line))
 			} else {
-				p.values = append(p.values, londd)
+				p.values["lon"] = londd
 			}
 		}
-	default:
-		// All other values
+	case p.i == 3:
+		// Temperature
 		_, floatErr := strconv.ParseFloat(clean, 64)
 		if floatErr != nil {
-			err = fmt.Errorf("Gradients4Parser: bad float: line=%q", line)
-			clean = "NA"
+			p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad float: line=%q", line))
+			p.values["temp"] = tsdata.NA
+		} else {
+			p.values["temp"] = clean
 		}
-		p.values = append(p.values, clean)
+	case p.i == 4:
+		// Conductivity
+		_, floatErr := strconv.ParseFloat(clean, 64)
+		if floatErr != nil {
+			p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad float: line=%q", line))
+			p.values["conductivity"] = tsdata.NA
+		} else {
+			p.values["conductivity"] = clean
+		}
+	case p.i == 5:
+		// Salinity
+		_, floatErr := strconv.ParseFloat(clean, 64)
+		if floatErr != nil {
+			p.errors = append(p.errors, fmt.Errorf("Gradients4Parser: bad float: line=%q", line))
+			p.values["salinity"] = tsdata.NA
+		} else {
+			p.values["salinity"] = clean
+		}
 	}
 
-	// Return last parsing error
 	return
 }
 
-func (p *Gradients4Parser) Flush() (d Data) {
-	// fmt.Printf("%v %v %v\n", p.t, len(p.values), p.values)
+// Header returns a string header for a TSDATA file.
+func (p *Gradients4Parser) Header() string {
+	return p.metadata.Header()
+}
+
+func (p *Gradients4Parser) createLastStanzaData() (d Data) {
+	// Add errors regardless of whether the stanza is complete
+	d.Errors = p.errors
+
 	if len(p.values) == 5 {
 		// Prepare complete Data struct
-		d.Feed = "geo"
 		d.Time = p.t
-		d.Values = p.values
+		d.Values = make([]string, len(p.values))
+		for i, k := range p.metadata.Headers {
+			if k != "time" {
+				d.Values[i-1] = p.values[k]
+			}
+		}
 		p.Limit(&d)
-
-		// Reset state
-		p.i = 0
-		p.t = time.Now().UTC()
-		p.values = []string{}
-		// fmt.Printf("%v\n", d)
 	}
+
 	return d
+}
+
+func (p *Gradients4Parser) reset() {
+	// Reset state
+	p.i = 0
+	p.t = p.now().UTC()
+	p.values = make(map[string]string)
+	p.errors = []error{}
 }
