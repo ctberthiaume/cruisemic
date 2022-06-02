@@ -49,7 +49,7 @@ func NewKiloMoanaParser(project string, interval time.Duration, now func() time.
 		},
 		Types:   []string{"time", "float", "float", "float", "float", "float", "float", "float", "float", "float", "float"},
 		Units:   []string{"NA", "C", "S/m", "PSU", "C", "deg", "kn", "count", "mV", "deg", "deg"},
-		Headers: []string{"time", "lab_temp", "conductivity", "salinity", "bow_temp", "heading_true_north", "knots", "fluor", "par", "lat", "lon"},
+		Headers: []string{"time", "lab_temp", "conductivity", "salinity", "temp", "heading_true_north", "knots", "fluor", "par", "lat", "lon"},
 	}
 
 	return p
@@ -83,12 +83,16 @@ func (p *KiloMoanaParser) ParseLine(line string) (d Data) {
 				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad met: %v: line=%q", thisErr, line))
 			}
 		case len(fields) >= 7 && fields[6] == "uthsl":
+			if thisErr = p.parseThermo(fields); thisErr != nil {
+				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad uthsl: %v: line=%q", thisErr, line))
+			}
+		case len(fields) >= 7 && fields[6] == "bar1":
 			d = p.createLastStanzaData()
 			p.reset()
 
 			// Start parsing the next stanza
-			if thisErr = p.parseThermo(fields); thisErr != nil {
-				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad uthsl: %v: line=%q", thisErr, line))
+			if thisErr = p.parseDate(fields); thisErr != nil {
+				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad bar1 date: %v: line=%q", thisErr, line))
 			}
 		}
 	}
@@ -153,14 +157,10 @@ func (p *KiloMoanaParser) parseThermo(fields []string) (err error) {
 			return err
 		}
 	}
-	err = p.parseDate(fields)
-	if err != nil {
-		return err
-	}
 	p.values["lab_temp"] = fields[7]
 	p.values["conductivity"] = fields[8]
 	p.values["salinity"] = fields[9]
-	p.values["bow_temp"] = fields[10]
+	p.values["temp"] = fields[10]
 	return
 }
 
