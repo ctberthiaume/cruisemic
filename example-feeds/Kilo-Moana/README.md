@@ -55,3 +55,4 @@ Any parser should be ready to handle that level of data flow.
 * Column 24 in the met lines can change from blank to "R-",
 which mean any check that counts total columns will probably break.
 Just look for the PAR value in column 19 and ignore total column count here.
+
