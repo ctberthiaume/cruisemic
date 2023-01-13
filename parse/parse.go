@@ -76,6 +76,7 @@ func ParseLines(parser Parser, r io.Reader, storer storage.Storer, rawFlag bool,
 // ParserRegistry allows underway parser constructors to be retrieved by name.
 var ParserRegistry = map[string]func(string, time.Duration, func() time.Time) Parser{
 	"Gradients4": NewGradients4Parser,
+	"Gradients5": NewGradients5Parser,
 	"Kilo Moana": NewKiloMoanaParser,
 }
 
