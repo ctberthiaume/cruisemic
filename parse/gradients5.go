@@ -95,38 +95,41 @@ func (p *Gradients5Parser) ParseLine(line string) (d Data) {
 
 	// // Temperature
 	tsgFields := strings.Split(fields[3], ",")
-	if len(tsgFields) != 4 {
+	if len(tsgFields) != 3 {
 		d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad TSG: line=%q", clean))
 		values["temp"] = tsdata.NA
 		values["conductivity"] = tsdata.NA
 		values["salinity"] = tsdata.NA
-	} // else {
-	// _, floatErr := strconv.ParseFloat(clean, 64)
-	// if floatErr != nil {
-	// 	d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
-	// 	values["temp"] = tsdata.NA
-	// } else {
-	// 	values["temp"] = clean
-	// }
+	} else {
+		tempStr := strings.TrimSpace(tsgFields[0])
+		_, floatErr := strconv.ParseFloat(strings.TrimSpace(tsgFields[0]), 64)
+		if floatErr != nil {
+			d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
+			values["temp"] = tsdata.NA
+		} else {
+			values["temp"] = tempStr
+		}
 
-	// // Conductivity
-	// _, floatErr := strconv.ParseFloat(clean, 64)
-	// if floatErr != nil {
-	// 	d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
-	// 	values["conductivity"] = tsdata.NA
-	// } else {
-	// 	values["conductivity"] = clean
-	// }
+		// Conductivity
+		condStr := strings.TrimSpace(tsgFields[1])
+		_, floatErr = strconv.ParseFloat(condStr, 64)
+		if floatErr != nil {
+			d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
+			values["conductivity"] = tsdata.NA
+		} else {
+			values["conductivity"] = condStr
+		}
 
-	// // Salinity
-	// _, floatErr := strconv.ParseFloat(clean, 64)
-	// if floatErr != nil {
-	// 	d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
-	// 	values["salinity"] = tsdata.NA
-	// } else {
-	// 	values["salinity"] = clean
-	// }
-	// }
+		// Salinity
+		salStr := strings.TrimSpace(tsgFields[2])
+		_, floatErr = strconv.ParseFloat(salStr, 64)
+		if floatErr != nil {
+			d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad float: line=%q", line))
+			values["salinity"] = tsdata.NA
+		} else {
+			values["salinity"] = salStr
+		}
+	}
 
 	// PAR
 	parFields := strings.Split(fields[4], ",")
