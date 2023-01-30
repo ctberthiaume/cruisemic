@@ -132,21 +132,28 @@ func (p *Gradients5Parser) ParseLine(line string) (d Data) {
 	}
 
 	// PAR
+	// Keep the line if PAR is simply not present, PAR feed may have stopped
+	// entirely and we should keep all other values if possible. As opposed to
+	// PAR being present but with possibly truncated numbers, in which case we
+	// want to reject the entire line in the hopes that a valid PAR value shows
+	// up within the throttled time interval.
 	parFields := strings.Split(fields[4], ",")
 	if len(parFields) < 2 {
 		d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad PPAR: line=%q", clean))
-	}
-	parStr := strings.TrimSpace(parFields[1])
-	parNumberFields := strings.Split(parFields[1], ".")
-	_, floatErr := strconv.ParseFloat(parStr, 64)
-	if floatErr != nil || len(parNumberFields) != 2 || len(parNumberFields[1]) != 3 {
-		d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad PAR float: line=%q", line))
 		values["par"] = tsdata.NA
-		// PAR is unreliable on G5. We'll be reading every second, so just completely
-		// reject the entire line if bad PAR. About 1 in 4 PAR is good.
-		return
 	} else {
-		values["par"] = parStr
+		parStr := strings.TrimSpace(parFields[1])
+		parNumberFields := strings.Split(parFields[1], ".")
+		_, floatErr := strconv.ParseFloat(parStr, 64)
+		if floatErr != nil || len(parNumberFields) != 2 || len(parNumberFields[1]) != 3 {
+			d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad PAR float: line=%q", line))
+			values["par"] = tsdata.NA
+			// PAR is unreliable on G5. We'll be reading every second, so just completely
+			// reject the entire line if bad PAR. About 1 in 4 PAR is good.
+			return
+		} else {
+			values["par"] = parStr
+		}
 	}
 
 	// Populate Data

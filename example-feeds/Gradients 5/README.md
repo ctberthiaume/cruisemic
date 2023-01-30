@@ -1,8 +1,10 @@
 # gradients5 underway data feed
 
 Data is emitted in lines like this. Par may be unreliable, may contain 0 - N
-columns. Only keep the first PAR number (microeinstein) and only if it has 3
-decimals of precision.
+columns. If there PAR is completely empty (not even a "$PPAR" string) we'll
+record it as NA assuming the feed is off. If the feed is there ("$PPAR, ") then
+we'll only keep a record if the PAR number is complete (has 3 decimals of
+precision).
 
 ```
 $SEAFLOW::$GPZDA,213309.00,12,01,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5
