@@ -95,7 +95,7 @@ func (p *Gradients5Parser) ParseLine(line string) (d Data) {
 
 	// // Temperature
 	tsgFields := strings.Split(fields[3], ",")
-	if len(tsgFields) != 3 {
+	if len(tsgFields) != 3 && len(tsgFields) != 4 {
 		d.Errors = append(d.Errors, fmt.Errorf("Gradients5Parser: bad TSG: line=%q", clean))
 		values["temp"] = tsdata.NA
 		values["conductivity"] = tsdata.NA
