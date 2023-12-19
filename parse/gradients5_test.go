@@ -29,7 +29,7 @@ func TestG5ParserRegistry(t *testing.T) {
 func TestG5Lines(t *testing.T) {
 	testData := []testG5LineData{
 		{
-			"TN267 line with extra tsg field",
+			"TN427 line with extra tsg field",
 			`$SEAFLOW::$GPZDA,213218.00,31,10,2023,00,00*6D::$GPGGA,213218.00,4737.578758,N,12222.827136,W,2,15,0.8,12.181,M,-22.0,M,4.0,0402*4F:: 15.0526,  3.78840,  30.4126, 1501.506::`,
 			map[string][]string{
 				"geo": {"2023-10-31T21:32:18Z\t47.6263\t-122.3805\t15.0526\t3.78840\t30.4126\tNA\n"},
@@ -71,8 +71,23 @@ $SEAFLOW::$GPZDA,213310.00,12,01,2023,00,00*6D::$GPGGA,213310.00,4738.983141,N,1
 			map[string][]string{},
 		},
 		{
-			"bad timestamp",
-			`$SEAFLOW::$GPZDA,213a309.00,12,01,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5`,
+			"bad timestamp, not a number",
+			`$SEAFLOW::$GPZDA,21a309.00,12,01,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5`,
+			map[string][]string{},
+		},
+		{
+			"bad timestamp, timestamp too long",
+			`$SEAFLOW::$GPZDA,213309.001,12,01,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5`,
+			map[string][]string{},
+		},
+		{
+			"bad timestamp, incorrect number of time fields",
+			`$SEAFLOW::$GPZDA,213309.00,12,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5`,
+			map[string][]string{},
+		},
+		{
+			"bad GPGGA, too many fields",
+			`$SEAFLOW::$GPZDA,213309.00,12,01,2023,00,00*6D::$GPGGA,213309.00,4738.983141,N,12218.805824,W,2,17,0.7,15.773,M,X,-22.2,M,7.0,0402*44::::$PPAR, 157.580, 6.10, 5`,
 			map[string][]string{},
 		},
 		{

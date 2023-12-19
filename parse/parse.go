@@ -78,6 +78,7 @@ var ParserRegistry = map[string]func(string, time.Duration, func() time.Time) Pa
 	"Gradients4": NewGradients4Parser,
 	"Gradients5": NewGradients5Parser,
 	"Kilo Moana": NewKiloMoanaParser,
+	"TN427":      NewTN427Parser,
 }
 
 // RegistryChoices returns keys for ParserRegistry one per line.
