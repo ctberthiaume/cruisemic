@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build cruisemic command-line tool for 64-bit MacOS and Linux
 
-VERSION=$(git describe --tags)
+VERSION=$(git describe --tags --dirty )
 
 [[ -d build ]] || mkdir build
 GOOS=darwin GOARCH=amd64 go build -o build/cruisemic.${VERSION}.darwin-amd64 cmd/cruisemic/main.go || exit 1

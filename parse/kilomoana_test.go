@@ -274,7 +274,7 @@ func createKMLinesTest(t *testing.T, tt testKMLineData) func(*testing.T) {
 		p := NewKiloMoanaParser("test", 0, time.Now)
 		store, _ := storage.NewMemStorage()
 		r := strings.NewReader(tt.input)
-		err := ParseLines(p, r, store, false, true, false)
+		err := ParseLines(p, r, store, true, false)
 		assert.Nil(err, "writing for test: "+tt.name)
 		// No need to check the raw feed
 		//delete(store.Feeds, "raw")

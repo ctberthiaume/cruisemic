@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -13,10 +15,11 @@ import (
 	"time"
 
 	"github.com/ctberthiaume/cruisemic/parse"
+	"github.com/ctberthiaume/cruisemic/rawudp"
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.6.7"
+var version = "v0.7.0"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -27,11 +30,12 @@ var parserFlag = flag.String("parser", "", "Parser to use, use -choices to see v
 var choicesFlag = flag.Bool("choices", false, "Print Parser choices and exit")
 var udpFlag = flag.Bool("udp", false, "Read from UDP, not STDIN")
 var hostFlag = flag.String("host", "0.0.0.0", "Interface IP to bind to for UDP")
-var portFlag = flag.Uint("port", 1234, "UDP port to bind to")
+var portFlag = flag.String("port", "1234", "Comma-separated list of UDP ports to bind to")
 var bufferFlag = flag.Uint("buffer", 1500, "Max UDP receive buffer size")
 var quietFlag = flag.Bool("quiet", false, "Suppress UDP informational status on stderr")
 var versionFlag = flag.Bool("version", false, "Print version and exit")
 var flushFlag = flag.Bool("flush", false, "Flush data to disk after every parsed feed line")
+var wrappedFlag = flag.Bool("wrapped", false, "STDIN UDP stream payloads are wrapped with RAWUDP headers")
 
 func main() {
 	flag.Parse()
@@ -52,6 +56,10 @@ func main() {
 	if *dirFlag == "" {
 		fmt.Println("-dir is required")
 	}
+	if *wrappedFlag && *udpFlag {
+		fmt.Println("-wrapped and -udp cannot both be set")
+		os.Exit(1)
+	}
 
 	parserFact, ok := parse.ParserRegistry[*parserFlag]
 	if !ok {
@@ -62,9 +70,11 @@ func main() {
 	outPrefix := *nameFlag + "-"
 	outSuffix := ".tab"
 
-	// Set header for parsed underway data file and raw data file
+	// Set header for parsed underway data file and raw data file. If not UDP,
+	// then don't write raw data, assuming we are already reading a raw data
+	// file.
 	feedHeaders := map[string]string{parse.UnderwayName: parser.Header()}
-	if *rawFlag {
+	if *rawFlag && *udpFlag {
 		feedHeaders[parse.RawName] = ""
 	}
 
@@ -97,37 +107,85 @@ func main() {
 	exitcode := 0
 	if *udpFlag {
 		if !*quietFlag {
-			log.Printf("Starting cruisemic at %v:%v", *hostFlag, *portFlag)
-		}
-		addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%v:%d", *hostFlag, *portFlag))
-		if err != nil {
-			log.Panic(err)
+			log.Printf("Starting cruisemic, listening at %v on ports %v", *hostFlag, *portFlag)
 		}
 
-		l, err := net.ListenUDP("udp", addr)
-		if err != nil {
-			log.Panic(err)
+		ports := strings.Split(*portFlag, ",")
+		dataChan := make(chan []byte)
+		var wg sync.WaitGroup
+
+		// Read from UDP ports, write to channel
+		for _, p := range ports {
+			wg.Add(1)
+			go func(port string) {
+				defer wg.Done()
+				addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%v:%s", *hostFlag, port))
+				if err != nil {
+					log.Printf("Error resolving UDP address for port %v: %v", port, err)
+					return
+				}
+
+				l, err := net.ListenUDP("udp", addr)
+				if err != nil {
+					log.Printf("Error listening on port %s: %v", port, err)
+					return
+				}
+				defer l.Close()
+
+				if !*quietFlag {
+					log.Printf("Listening on UDP port %s", port)
+				}
+
+				b := make([]byte, *bufferFlag)
+				for {
+					n, addr, err := l.ReadFromUDP(b)
+					if err != nil {
+						log.Printf("read from UDP port %s failed, err: %v", port, err)
+						break
+					}
+					if !*quietFlag {
+						log.Printf("Read from client(%v:%v) on port %s, len: %v\n", addr.IP, addr.Port, port, n)
+					}
+					// Copy data to avoid race conditions on buffer 'b'
+					data := make([]byte, n)
+					copy(data, b[:n])
+					dataChan <- data
+				}
+			}(strings.TrimSpace(p))
 		}
-		b := make([]byte, *bufferFlag)
-		for {
-			n, addr, err := l.ReadFromUDP(b)
-			if err != nil {
-				log.Printf("read from UDP failed, err: %v", err)
-				exitcode = 1
-				break
+
+		// Process data from channel
+		go func() {
+			for data := range dataChan {
+				if *rawFlag {
+					// Write UDP payload wrapped with RAWUDP header
+					wrapped := rawudp.WrapUDPPayload(rawudp.RealTime{}, data)
+					if err := storer.WriteString(parse.RawName, string(wrapped)); err != nil {
+						log.Printf("error writing raw UDP: %v", err)
+					}
+				}
+
+				err = parse.ParseLines(parser, strings.NewReader(string(data)), storer, *flushFlag, *noCleanFlag)
+				if err != nil {
+					log.Println(err)
+					exitcode = 1
+					break
+				}
 			}
-			if !*quietFlag {
-				log.Printf("Read from client(%v:%v), len: %v\n", addr.IP, addr.Port, n)
-			}
-			err = parse.ParseLines(parser, strings.NewReader(string(b[:n])), storer, *rawFlag, *flushFlag, *noCleanFlag)
-			if err != nil {
-				log.Println(err)
-				exitcode = 1
-				break
-			}
-		}
+		}()
+		// Wait for all UDP readers to finish (they run forever unless error)
+		wg.Wait()
+		close(dataChan)
 	} else {
-		err := parse.ParseLines(parser, os.Stdin, storer, *rawFlag, *flushFlag, *noCleanFlag)
+		var r io.Reader
+		if *wrappedFlag {
+			// Read from STDIN with RAWUDP-wrapped payloads
+			r = rawudp.NewRawUDPReader(bufio.NewReader(os.Stdin))
+		} else {
+			r = bufio.NewReader(os.Stdin)
+		}
+
+		err := parse.ParseLines(parser, r, storer, *flushFlag, *noCleanFlag)
 		if err != nil {
 			log.Println(err)
 			exitcode = 1

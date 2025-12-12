@@ -285,7 +285,7 @@ func createG4LinesTest(t *testing.T, tt testG4LineData) func(*testing.T) {
 		p := NewGradients4Parser("test", 0, now)
 		store, _ := storage.NewMemStorage()
 		r := strings.NewReader(tt.input)
-		err := ParseLines(p, r, store, false, true, false)
+		err := ParseLines(p, r, store, true, false)
 		assert.Nil(err, "writing for test: "+tt.name)
 		// No need to check the raw feed
 		// delete(store.Feeds, "raw")

@@ -43,8 +43,16 @@ func NewGradients4Parser(project string, interval time.Duration, now func() time
 	return p
 }
 
-// ParseLine parses and saves a single underway feed line.
+// ParseLine parses a single underway feed line. Only lines ending with \n are
+// examined.
 func (p *Gradients4Parser) ParseLine(line string) (d Data) {
+	if len(line) == 0 || line[len(line)-1] != '\n' {
+		return
+	}
+
+	// Remove trailing \n for parsing
+	line = line[:len(line)-1]
+
 	if line == "$SEAFLOW" {
 		d = p.createLastStanzaData()
 		p.reset()

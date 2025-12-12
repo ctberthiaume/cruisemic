@@ -55,11 +55,16 @@ func NewKiloMoanaParser(project string, interval time.Duration, now func() time.
 	return p
 }
 
-// ParseLine parses and saves a single underway feed line.
+// ParseLine parses a single underway feed line. Only lines ending with \n are
+// examined.
 func (p *KiloMoanaParser) ParseLine(line string) (d Data) {
-	if len(line) == 0 {
+	if len(line) == 0 || line[len(line)-1] != '\n' {
 		return
 	}
+
+	// Remove trailing \n for parsing
+	line = line[:len(line)-1]
+
 	var thisErr error
 	if strings.HasPrefix(line, "$GPGGA") {
 		fields := strings.Split(line, ",")
