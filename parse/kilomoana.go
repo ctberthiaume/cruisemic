@@ -12,11 +12,7 @@ import (
 
 // KiloMoanaParser is a parser for Kilo Moana underway feed lines.
 type KiloMoanaParser struct {
-	Throttle
-	t        time.Time         // time of current stanza
-	values   map[string]string // accumulated values for this stanza by column name
-	errors   []error           // errors for the current stanza
-	metadata tsdata.Tsdata
+	DataManager
 }
 
 // NewKiloMoanaParser returns a pointer to a KiloMoanaParser struct. project is
@@ -24,13 +20,7 @@ type KiloMoanaParser struct {
 // in seconds.
 func NewKiloMoanaParser(project string, interval time.Duration, now func() time.Time) Parser {
 	_ = now // now is not sued in this function
-
-	p := &KiloMoanaParser{
-		Throttle: NewThrottle(interval),
-		values:   make(map[string]string),
-	}
-
-	p.metadata = tsdata.Tsdata{
+	metadata := tsdata.Tsdata{
 		Project:         project,
 		FileType:        "geo",
 		FileDescription: "Kilo Moana underway feed",
@@ -51,8 +41,9 @@ func NewKiloMoanaParser(project string, interval time.Duration, now func() time.
 		Units:   []string{"NA", "C", "S/m", "PSU", "C", "deg", "kn", "count", "mV", "deg", "deg"},
 		Headers: []string{"time", "lab_temp", "conductivity", "salinity", "temp", "heading_true_north", "knots", "fluor", "par", "lat", "lon"},
 	}
-
-	return p
+	return &KiloMoanaParser{
+		DataManager: *NewDataManager(metadata, interval),
+	}
 }
 
 // ParseLine parses a single underway feed line. Only lines ending with \n are
@@ -69,45 +60,50 @@ func (p *KiloMoanaParser) ParseLine(line string) (d Data) {
 	if strings.HasPrefix(line, "$GPGGA") {
 		fields := strings.Split(line, ",")
 		if thisErr = p.parseGeo(fields); thisErr != nil {
-			p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad GPGGA: %v: line=%q", thisErr, line))
+			p.AddError(fmt.Errorf("KiloMoanaParser: bad GPGGA: %v: line=%q", thisErr, line))
 		}
 	} else if strings.HasPrefix(line, "$GPVTG") {
 		fields := strings.Split(line, ",")
 		if thisErr = p.parseHeading(fields); thisErr != nil {
-			p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad GPVTG: %v: line=%q", thisErr, line))
+			p.AddError(fmt.Errorf("KiloMoanaParser: bad GPVTG: %v: line=%q", thisErr, line))
 		}
 	} else {
 		fields := strings.Fields(line)
 		switch {
 		case len(fields) >= 7 && fields[6] == "flor":
 			if thisErr = p.parseFluor(fields); thisErr != nil {
-				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad fluor: %v: line=%q", thisErr, line))
+				p.AddError(fmt.Errorf("KiloMoanaParser: bad fluor: %v: line=%q", thisErr, line))
 			}
 		case len(fields) >= 7 && fields[6] == "met":
 			if thisErr = p.parsePar(fields); thisErr != nil {
-				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad met: %v: line=%q", thisErr, line))
+				p.AddError(fmt.Errorf("KiloMoanaParser: bad met: %v: line=%q", thisErr, line))
 			}
 		case len(fields) >= 7 && fields[6] == "uthsl":
 			if thisErr = p.parseThermo(fields); thisErr != nil {
-				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad uthsl: %v: line=%q", thisErr, line))
+				p.AddError(fmt.Errorf("KiloMoanaParser: bad uthsl: %v: line=%q", thisErr, line))
 			}
 		case len(fields) >= 7 && fields[6] == "bar1":
-			d = p.createLastStanzaData()
-			p.reset()
+			// Fill in all non-time, non-lat, non-lon values with NA if needed
+			// and set data.
+			for _, k := range p.metadata.Headers {
+				if k != "time" && k != "lat" && k != "lon" {
+					if val, ok := p.GetValue(k); !ok {
+						p.AddValue(k, tsdata.NA)
+					} else {
+						p.AddValue(k, val)
+					}
+				}
+			}
+			d = p.GetData()
 
 			// Start parsing the next stanza
 			if thisErr = p.parseDate(fields); thisErr != nil {
-				p.errors = append(p.errors, fmt.Errorf("KiloMoanaParser: bad bar1 date: %v: line=%q", thisErr, line))
+				p.AddError(fmt.Errorf("KiloMoanaParser: bad bar1 date: %v: line=%q", thisErr, line))
 			}
 		}
 	}
 
 	return d
-}
-
-// Header returns a string header for a TSDATA file.
-func (p *KiloMoanaParser) Header() string {
-	return p.metadata.Header()
 }
 
 func (p *KiloMoanaParser) parseDate(fields []string) (err error) {
@@ -133,7 +129,7 @@ func (p *KiloMoanaParser) parseFluor(fields []string) (err error) {
 	if _, err := strconv.ParseFloat(fields[7], 64); err != nil {
 		return err
 	}
-	p.values["fluor"] = fields[7]
+	p.AddValue("fluor", fields[7])
 	return
 }
 
@@ -149,7 +145,7 @@ func (p *KiloMoanaParser) parsePar(fields []string) (err error) {
 	if _, err := strconv.ParseFloat(fields[18], 64); err != nil {
 		return err
 	}
-	p.values["par"] = fields[18]
+	p.AddValue("par", fields[18])
 	return
 }
 
@@ -162,10 +158,10 @@ func (p *KiloMoanaParser) parseThermo(fields []string) (err error) {
 			return err
 		}
 	}
-	p.values["lab_temp"] = fields[7]
-	p.values["conductivity"] = fields[8]
-	p.values["salinity"] = fields[9]
-	p.values["temp"] = fields[10]
+	p.AddValue("lab_temp", fields[7])
+	p.AddValue("conductivity", fields[8])
+	p.AddValue("salinity", fields[9])
+	p.AddValue("temp", fields[10])
 	return
 }
 
@@ -181,8 +177,8 @@ func (p *KiloMoanaParser) parseGeo(fields []string) (err error) {
 	if londderr != nil {
 		return londderr
 	}
-	p.values["lat"] = latdd
-	p.values["lon"] = londd
+	p.AddValue("lat", latdd)
+	p.AddValue("lon", londd)
 	return
 }
 
@@ -196,40 +192,7 @@ func (p *KiloMoanaParser) parseHeading(fields []string) (err error) {
 	if _, err := strconv.ParseFloat(fields[5], 64); err != nil { // knots
 		return err
 	}
-	p.values["heading_true_north"] = fields[1]
-	p.values["knots"] = fields[5]
+	p.AddValue("heading_true_north", fields[1])
+	p.AddValue("knots", fields[5])
 	return
-}
-
-// createLastStanzaData creates a completed Data struct once a stanza is finished.
-func (p *KiloMoanaParser) createLastStanzaData() (d Data) {
-	// Add errors regardless of whether the stanza has lat/lon/time
-	d.Errors = p.errors
-
-	_, latOk := p.values["lat"]
-	_, lonOk := p.values["lon"]
-	if latOk && lonOk {
-		// Prepare complete Data struct
-		d.Time = p.t
-		d.Values = make([]string, len(p.metadata.Headers)-1)
-		for i, k := range p.metadata.Headers {
-			if k != "time" {
-				val, ok := p.values[k]
-				if !ok {
-					d.Values[i-1] = tsdata.NA
-				} else {
-					d.Values[i-1] = val
-				}
-			}
-		}
-		p.Limit(&d)
-	}
-
-	return d
-}
-
-func (p *KiloMoanaParser) reset() {
-	p.t = time.Time{}
-	p.values = make(map[string]string)
-	p.errors = []error{}
 }

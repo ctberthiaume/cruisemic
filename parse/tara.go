@@ -12,11 +12,7 @@ import (
 
 // TARAParser is a parser for only NMEA GPGGA lines.
 type TARAParser struct {
-	Throttle
-	t        time.Time         // latest time read
-	values   map[string]string // latest values by column name
-	errors   []error           // errors encountered when parsing latest values
-	metadata tsdata.Tsdata
+	DataManager
 }
 
 // NewTARAParser returns a pointer to a TARAParser struct. project is
@@ -25,12 +21,7 @@ type TARAParser struct {
 func NewTARAParser(project string, interval time.Duration, now func() time.Time) Parser {
 	_ = now // now is not used in this function
 
-	p := &TARAParser{
-		Throttle: NewThrottle(interval),
-		values:   make(map[string]string),
-	}
-
-	p.metadata = tsdata.Tsdata{
+	metadata := tsdata.Tsdata{
 		Project:         project,
 		FileType:        "geo",
 		FileDescription: "TARA feed",
@@ -43,8 +34,9 @@ func NewTARAParser(project string, interval time.Duration, now func() time.Time)
 		Units:   []string{"NA", "deg", "deg"},
 		Headers: []string{"time", "lat", "lon"},
 	}
-
-	return p
+	return &TARAParser{
+		DataManager: *NewDataManager(metadata, interval),
+	}
 }
 
 // ParseLine parses a single underway feed line. Only lines ending with \n are
@@ -62,18 +54,11 @@ func (p *TARAParser) ParseLine(line string) (d Data) {
 	if strings.HasPrefix(line, "$GPRMC") {
 		fields := strings.Split(line, ",")
 		if thisErr = p.parseGPRMC(fields); thisErr != nil {
-			p.errors = append(p.errors, fmt.Errorf("TARAParser: bad GPRMC: %v: line=%q", thisErr, line))
+			p.AddError(fmt.Errorf("TARAParser: bad GPRMC: %v: line=%q", thisErr, line))
 		}
-		d = p.createData()
-		p.reset() // reset parser state
 	}
 
-	return d
-}
-
-// Header returns a string header for a TSDATA file.
-func (p *TARAParser) Header() string {
-	return p.metadata.Header()
+	return p.GetData()
 }
 
 func (p *TARAParser) parseGPRMC(fields []string) (err error) {
@@ -128,39 +113,9 @@ func (p *TARAParser) parseGPRMC(fields []string) (err error) {
 		return fmt.Errorf("bad GPRMC date/time")
 	}
 
-	p.values["lat"] = latdd
-	p.values["lon"] = londd
-	p.t = t
+	p.AddValue("lat", latdd)
+	p.AddValue("lon", londd)
+	p.SetTime(t)
 
 	return
-}
-
-// createData creates a completed Data struct.
-func (p *TARAParser) createData() (d Data) {
-	// Add errors regardless of whether the stanza has lat/lon/time
-	d.Errors = p.errors
-	// Add time
-	d.Time = p.t
-
-	// Add non-time values and throttle/limit
-	d.Values = make([]string, len(p.metadata.Headers)-1)
-	for i, k := range p.metadata.Headers {
-		if k != "time" {
-			val, ok := p.values[k]
-			if !ok {
-				d.Values[i-1] = tsdata.NA
-			} else {
-				d.Values[i-1] = val
-			}
-		}
-	}
-	p.Limit(&d)
-
-	return d
-}
-
-func (p *TARAParser) reset() {
-	p.t = time.Time{}
-	p.values = make(map[string]string)
-	p.errors = []error{}
 }

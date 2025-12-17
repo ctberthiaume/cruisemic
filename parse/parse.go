@@ -17,7 +17,7 @@ import (
 // RawName is the string designator for unparsed text data sent to storage
 const RawName = "raw"
 
-// DnderwayName is the string designator for parsed underway text data sent to storage
+// UnderwayName is the string designator for parsed underway text data sent to storage
 const UnderwayName = "geo"
 
 // Parser is the interface that groups the ParseLine and RateLimit used to
