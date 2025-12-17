@@ -118,7 +118,7 @@ func (p *KiloMoanaParser) parseDate(fields []string) (err error) {
 		}
 	}
 	t0 := time.Date(parts[0], time.January, 1, parts[2], parts[3], parts[4], parts[5]*1000000, time.UTC)
-	p.t = t0.Add(time.Duration(24*(parts[1]-1)) * time.Duration(time.Hour)).Round(0)
+	p.SetTime(t0.Add(time.Duration(24*(parts[1]-1)) * time.Duration(time.Hour)).Round(0))
 	return
 }
 
