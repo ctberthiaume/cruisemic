@@ -79,10 +79,10 @@ func (dm *DataManager) GetData() (d Data) {
 	if allValuesPresent {
 		// Prepare complete Data struct
 		d.Time = dm.t
-		d.Values = make([]string, len(dm.metadata.Headers)-1) // All columns except time
-		for i, k := range dm.metadata.Headers {
+		d.Values = make([]string, 0, len(dm.metadata.Headers)-1) // All columns except time
+		for _, k := range dm.metadata.Headers {
 			if k != "time" {
-				d.Values[i-1] = dm.values[k]
+				d.Values = append(d.Values, dm.values[k])
 			}
 		}
 		d.Errors = dm.errors
