@@ -24,15 +24,18 @@ func NewTARAParser(project string, interval time.Duration, now func() time.Time)
 	metadata := tsdata.Tsdata{
 		Project:         project,
 		FileType:        "geo",
-		FileDescription: "TARA feed",
+		FileDescription: "TARA underway feed",
 		Comments: []string{
 			"RFC3339",
 			"Latitude Decimal format",
 			"Longitude Decimal format",
+			"TSG temperature",
+			"TSG conductivity",
+			"TSG salinity",
 		},
-		Types:   []string{"time", "float", "float"},
-		Units:   []string{"NA", "deg", "deg"},
-		Headers: []string{"time", "lat", "lon"},
+		Types:   []string{"time", "float", "float", "float", "float", "float"},
+		Units:   []string{"NA", "deg", "deg", "C", "S/m", "PSU"},
+		Headers: []string{"time", "lat", "lon", "temp", "conductivity", "salinity"},
 	}
 	return &TARAParser{
 		DataManager: *NewDataManager(metadata, interval),
@@ -55,6 +58,17 @@ func (p *TARAParser) ParseLine(line string) (d Data) {
 		fields := strings.Split(line, ",")
 		if thisErr = p.parseGPRMC(fields); thisErr != nil {
 			p.AddError(fmt.Errorf("TARAParser: bad GPRMC: %v: line=%q", thisErr, line))
+		}
+		// If there is no TSG data by the time we receive a GPRMC line, set to
+		// NA.
+		if _, ok := p.GetValue("temp"); !ok {
+			p.AddValue("temp", tsdata.NA)
+		}
+		if _, ok := p.GetValue("conductivity"); !ok {
+			p.AddValue("conductivity", tsdata.NA)
+		}
+		if _, ok := p.GetValue("salinity"); !ok {
+			p.AddValue("salinity", tsdata.NA)
 		}
 	}
 
@@ -119,3 +133,5 @@ func (p *TARAParser) parseGPRMC(fields []string) (err error) {
 
 	return
 }
+
+// TODO: add TSG parsing when we have an exmaple of the feed
