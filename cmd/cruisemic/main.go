@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -19,12 +20,13 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.8.4"
+var version = "v0.9.0"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
 var rawFlag = flag.Bool("raw", false, "Save raw, unparsed, but possibly cleaned, input to storage")
 var dirFlag = flag.String("dir", "", "Append received data to files in this directory (required)")
+var copyDirFlag = flag.String("copy", "", "Periodically (1m) copy parsed data to this directory")
 var intervalFlag = flag.Duration("interval", 0, "Per-feed throttling interval as duration parsed by time.ParseDuration, e.g. 300ms, 1s, 1m")
 var parserFlag = flag.String("parser", "", "Parser to use, use -choices to see valid choices (required)")
 var choicesFlag = flag.Bool("choices", false, "Print Parser choices and exit")
@@ -173,6 +175,36 @@ func main() {
 				}
 			}
 		}()
+
+		// Copy parsed data periodically to another directory if requested
+		// TODO: pause storer during copy to avoid partial writes
+		if *copyDirFlag != "" {
+			go func() {
+				ticker := time.NewTicker(1 * time.Minute)
+				defer ticker.Stop()
+				for range ticker.C {
+					mut.Lock()
+					for feed := range feedHeaders {
+						srcPath := storer.FeedPath(feed)
+						relPath, err := filepath.Rel(*dirFlag, srcPath)
+						if err != nil {
+							log.Printf("error getting relative path: %v", err)
+							continue
+						}
+						dstPath := filepath.Join(*copyDirFlag, relPath)
+						if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+							log.Printf("error creating directory for %q: %v", dstPath, err)
+							continue
+						}
+						err = storage.CopyFile(srcPath, dstPath)
+						if err != nil {
+							log.Printf("error copying %q to %q: %v", srcPath, dstPath, err)
+						}
+					}
+					mut.Unlock()
+				}
+			}()
+		}
 		// Wait for all UDP readers to finish (they run forever unless error)
 		wg.Wait()
 		close(dataChan)

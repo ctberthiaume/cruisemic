@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -11,6 +12,7 @@ type Storer interface {
 	WriteString(feed string, s string) error
 	Close() error
 	Flush() error
+	FeedPath(feed string) string
 }
 
 type MemStorage struct {
@@ -43,6 +45,11 @@ func (store *MemStorage) Flush() (err error) {
 func (store *MemStorage) Close() (err error) {
 	store.Closed = true
 	return
+}
+
+// FeedPath creates a feed file path. For MemStorage this is just the feed name.
+func (store *MemStorage) FeedPath(feed string) string {
+	return feed
 }
 
 // DiskStorage implements methods to save text data feeds to disk.
@@ -125,14 +132,14 @@ func (store *DiskStorage) Close() (err error) {
 	return err
 }
 
-// feedPath creates a feed file path.
-func (store *DiskStorage) feedPath(feed string) string {
+// FeedPath creates a feed file path.
+func (store *DiskStorage) FeedPath(feed string) string {
 	return filepath.Join(store.dir, store.filePrefix+feed+store.fileExt)
 }
 
 // hasData checks if the output feed already contains data.
 func (store *DiskStorage) hasData(feed string) (bool, error) {
-	file, err := os.Open(store.feedPath(feed))
+	file, err := os.Open(store.FeedPath(feed))
 	if err != nil {
 		return false, err
 	}
@@ -146,7 +153,7 @@ func (store *DiskStorage) hasData(feed string) (bool, error) {
 
 // setOutput opens an output file for a data feed.
 func (store *DiskStorage) setOutput(feed string) error {
-	path := store.feedPath(feed)
+	path := store.FeedPath(feed)
 	of, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -178,4 +185,30 @@ func (store *DiskStorage) writeHeader(feed string, header string) error {
 		}
 	}
 	return nil
+}
+
+// CopyFile copies a file from src to dst.
+func CopyFile(src, dst string) error {
+	// 1. Open the source file for reading
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	// 2. Create the destination file (truncates if exists)
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	// 3. Stream the content from source to destination
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	// 4. Ensure the file is written to disk
+	return destFile.Sync()
 }

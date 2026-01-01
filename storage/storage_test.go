@@ -47,20 +47,6 @@ func (suite *StorageTestSuite) TestDirCreation() {
 	assert.DirExists(suite.T(), suite.storeDir, "storage directory should exist")
 }
 
-func (suite *StorageTestSuite) TestFeedCreation() {
-	store, err := NewDiskStorage(suite.storeDir, "", "", nil, 0)
-	assert.Nil(suite.T(), err)
-	if err != nil {
-		return
-	}
-	err = store.Close()
-	assert.Nil(suite.T(), err)
-	if err != nil {
-		return
-	}
-	assert.DirExists(suite.T(), suite.storeDir, "storage directory should exist")
-}
-
 func (suite *StorageTestSuite) TestHeader() {
 	feedHeaders := map[string]string{
 		"empty":    "",
@@ -77,6 +63,12 @@ func (suite *StorageTestSuite) TestHeader() {
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
+	}
+
+	// Make sure FeedPath returns correct path
+	for feed := range feedHeaders {
+		expectedPath := filepath.Join(suite.storeDir, "test-"+feed+".tab")
+		assert.Equal(suite.T(), expectedPath, store.FeedPath(feed), "FeedPath should return correct path")
 	}
 
 	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-empty.tab"))
