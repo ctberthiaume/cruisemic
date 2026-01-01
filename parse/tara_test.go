@@ -32,14 +32,14 @@ func TestTARALines(t *testing.T) {
 			"good TARA GPRMC line",
 			"$GPRMC,160332,A,4743.7694,N,00322.4405,W,0.0,182.6,071225,0.2,W,D*19\n",
 			map[string][]string{
-				"geo": {"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n"},
+				"geo": {"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n"},
 			},
 		},
 		{
 			"good TARA GPRMC line with carriage return",
 			"$GPRMC,160332,A,4743.7694,N,00322.4405,W,0.0,182.6,071225,0.2,W,D*19\r\n",
 			map[string][]string{
-				"geo": {"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n"},
+				"geo": {"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n"},
 			},
 		},
 		{
@@ -66,8 +66,8 @@ $GPRMC,170332,A,4743.7694,N,00322.4405,W,0.0,182.6,071225,0.2,W,D*19
 `,
 			map[string][]string{
 				"geo": {
-					"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n",
-					"2025-12-07T17:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n"},
+					"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n",
+					"2025-12-07T17:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n"},
 			},
 		},
 		{
@@ -79,8 +79,8 @@ $GPRMC,170332,A,4743.7694,N,00322.4405,W,0.0,182.6,071225,0.2,W,D*19
 `,
 			map[string][]string{
 				"geo": {
-					"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n",
-					"2025-12-07T17:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\n"},
+					"2025-12-07T16:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n",
+					"2025-12-07T17:03:32Z\t47.7295\t-3.3740\tNA\tNA\tNA\tNA\n"},
 			},
 		},
 		{

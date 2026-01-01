@@ -32,10 +32,11 @@ func NewTARAParser(project string, interval time.Duration, now func() time.Time)
 			"TSG temperature",
 			"TSG conductivity",
 			"TSG salinity",
+			"PAR",
 		},
-		Types:   []string{"time", "float", "float", "float", "float", "float"},
-		Units:   []string{"NA", "deg", "deg", "C", "S/m", "PSU"},
-		Headers: []string{"time", "lat", "lon", "temp", "conductivity", "salinity"},
+		Types:   []string{"time", "float", "float", "float", "float", "float", "float"},
+		Units:   []string{"NA", "deg", "deg", "C", "S/m", "PSU", "µE/m^2/s"},
+		Headers: []string{"time", "lat", "lon", "temp", "conductivity", "salinity", "par"},
 	}
 	return &TARAParser{
 		DataManager: *NewDataManager(metadata, interval),
@@ -69,6 +70,9 @@ func (p *TARAParser) ParseLine(line string) (d Data) {
 		}
 		if _, ok := p.GetValue("salinity"); !ok {
 			p.AddValue("salinity", tsdata.NA)
+		}
+		if _, ok := p.GetValue("par"); !ok {
+			p.AddValue("par", tsdata.NA)
 		}
 	}
 
