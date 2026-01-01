@@ -20,7 +20,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.9.0"
+var version = "v0.9.1"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -108,9 +108,7 @@ func main() {
 	log.Printf("Writing to %q", *dirFlag)
 	exitcode := 0
 	if *udpFlag {
-		if !*quietFlag {
-			log.Printf("Starting cruisemic, listening at %v on ports %v", *hostFlag, *portFlag)
-		}
+		log.Printf("Starting cruisemic, listening at %v on ports %v", *hostFlag, *portFlag)
 
 		ports := strings.Split(*portFlag, ",")
 		dataChan := make(chan []byte)
@@ -179,6 +177,7 @@ func main() {
 		// Copy parsed data periodically to another directory if requested
 		// TODO: pause storer during copy to avoid partial writes
 		if *copyDirFlag != "" {
+			log.Printf("Copying parsed data to %q every 1 minute", *copyDirFlag)
 			go func() {
 				ticker := time.NewTicker(1 * time.Minute)
 				defer ticker.Stop()
