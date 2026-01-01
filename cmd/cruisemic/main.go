@@ -20,7 +20,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.9.2"
+var version = "v0.9.3"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -57,6 +57,7 @@ func main() {
 	}
 	if *dirFlag == "" {
 		fmt.Println("-dir is required")
+		os.Exit(1)
 	}
 	if *wrappedFlag && *udpFlag {
 		fmt.Println("-wrapped and -udp cannot both be set")
