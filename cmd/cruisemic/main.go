@@ -20,7 +20,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.9.5"
+var version = "v0.9.6"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -180,6 +180,9 @@ func main() {
 				for range ticker.C {
 					mut.Lock()
 					for feed := range feedHeaders {
+						if feed == parse.RawName {
+							continue
+						}
 						srcPath := storer.FeedPath(feed)
 						relPath, err := filepath.Rel(*dirFlag, srcPath)
 						if err != nil {
