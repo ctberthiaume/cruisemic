@@ -20,7 +20,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.9.4"
+var version = "v0.9.5"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
@@ -51,23 +51,18 @@ func main() {
 		os.Exit(0)
 	}
 	if *nameFlag == "" {
-		fmt.Println("-name is required")
-		flag.PrintDefaults()
-		os.Exit(1)
+		log.Fatalln("-name is required")
 	}
 	if *dirFlag == "" {
-		fmt.Println("-dir is required")
-		os.Exit(1)
+		log.Fatalln("-dir is required")
 	}
 	if *wrappedFlag && *udpFlag {
-		fmt.Println("-wrapped and -udp cannot both be set")
-		os.Exit(1)
+		log.Fatalln("-wrapped and -udp cannot both be set")
 	}
 
 	parserFact, ok := parse.ParserRegistry[*parserFlag]
 	if !ok {
-		fmt.Println("-parser must be one of the choices listed by -choices")
-		os.Exit(1)
+		log.Fatalln("-parser must be one of the choices listed by -choices")
 	}
 	parser := parserFact(*nameFlag, *intervalFlag, time.Now)
 	outPrefix := *nameFlag + "-"
