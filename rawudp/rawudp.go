@@ -14,6 +14,7 @@ import (
 type RawUDPReader struct {
 	scanner *bufio.Scanner
 	buffer  bytes.Buffer
+	eof     bool
 }
 
 // TimeSource is an interface that provides the current time.
@@ -48,6 +49,14 @@ func (r *RawUDPReader) Read(p []byte) (n int, err error) {
 		return r.buffer.Read(p)
 	}
 
+	// No more data to be had from scanner, and buffer should be empty by now.
+	if r.eof {
+		if r.buffer.Len() != 0 {
+			return 0, fmt.Errorf("RawUDPReader: eof but buffer len=%d\n", r.buffer.Len())
+		}
+		return 0, io.EOF
+	}
+
 	// Fill buffer with more payload data and satisfy the read if possible
 	for r.scanner.Scan() {
 		b := r.scanner.Bytes() // a complete payload
@@ -57,8 +66,10 @@ func (r *RawUDPReader) Read(p []byte) (n int, err error) {
 			return r.buffer.Read(p)
 		}
 	}
+
 	// Either we ran out of payload data before satisfying the read, or an
 	// error occurred.
+	r.eof = true // scanner is exhausted
 	if err := r.scanner.Err(); err != nil {
 		return 0, err
 	}
@@ -110,9 +121,17 @@ func scanRawUDP(data []byte, atEOF bool) (advance int, token []byte, err error) 
 			return 0, nil, nil
 		}
 	} else {
-		// This should never be reached in a well-formed Raw UDP stream. Return
-		// an error.
-		return 0, nil, fmt.Errorf("bad RAWUDP start")
+		// Can't find start of RAWUDP header, check that was we have matches
+		// the start of a RAWUDP header.
+		expected := "=== RAWUDP,"
+		if len(data) < len(expected) {
+			if string(data) == expected[:len(data)] {
+				// Partial match, request more data
+				return 0, nil, nil
+			}
+		}
+		// Something went wrong, return an error
+		return 0, nil, fmt.Errorf("bad RAWUDP start: %v", string(data))
 	}
 }
 
