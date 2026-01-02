@@ -189,26 +189,37 @@ func (store *DiskStorage) writeHeader(feed string, header string) error {
 
 // CopyFile copies a file from src to dst.
 func CopyFile(src, dst string) error {
-	// 1. Open the source file for reading
 	sourceFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer sourceFile.Close()
 
-	// 2. Create the destination file (truncates if exists)
-	destFile, err := os.Create(dst)
+	// Create a temporary file in the destination directory
+	dstDir := filepath.Dir(dst)
+	tempFile, err := os.CreateTemp(dstDir, "atomic-copy-")
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	// Clean up the temp file if something goes wrong
+	defer os.Remove(tempFile.Name())
 
-	// 3. Stream the content from source to destination
-	_, err = io.Copy(destFile, sourceFile)
+	// Stream the content from source to destination
+	_, err = io.Copy(tempFile, sourceFile)
 	if err != nil {
+		tempFile.Close()
 		return err
 	}
 
-	// 4. Ensure the file is written to disk
-	return destFile.Sync()
+	// Ensure the file is written to disk and close it
+	if err := tempFile.Sync(); err != nil {
+		tempFile.Close()
+		return err
+	}
+	if err := tempFile.Close(); err != nil {
+		return err
+	}
+
+	// Atomically rename the temporary file to the final destination
+	return os.Rename(tempFile.Name(), dst)
 }
