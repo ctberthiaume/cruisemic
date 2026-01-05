@@ -197,7 +197,8 @@ func CopyFile(src, dst string) error {
 
 	// Create a temporary file in the destination directory
 	dstDir := filepath.Dir(dst)
-	tempFile, err := os.CreateTemp(dstDir, "atomic-copy-")
+	dstBase := filepath.Base(dst)
+	tempFile, err := os.CreateTemp(dstDir, dstBase+".tmp-*")
 	if err != nil {
 		return err
 	}
