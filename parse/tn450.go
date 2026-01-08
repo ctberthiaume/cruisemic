@@ -36,12 +36,9 @@ func NewTN450Parser(project string, interval time.Duration, now func() time.Time
 // ParseLine parses a single underway feed line. Only lines ending with \n are
 // examined.
 func (p *TN450Parser) ParseLine(line string) (d Data) {
-	if len(line) == 0 || line[len(line)-1] != '\n' {
+	if len(line) == 0 {
 		return
 	}
-
-	// Remove trailing \n for parsing
-	line = line[:len(line)-1]
 
 	// Trim leading and trailing whitespace
 	clean := strings.TrimSpace(line)
