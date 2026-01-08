@@ -20,7 +20,7 @@ import (
 	"github.com/ctberthiaume/cruisemic/storage"
 )
 
-var version = "v0.9.8"
+var version = "v0.10.0"
 
 var nameFlag = flag.String("name", "", "Cruise or experiment name (required)")
 var noCleanFlag = flag.Bool("noclean", false, "Don't filter for whitelisted ASCII characters: Space to ~, TAB, LF, CR")
