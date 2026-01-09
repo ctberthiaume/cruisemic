@@ -10,32 +10,32 @@ import (
 	"github.com/ctberthiaume/tsdata"
 )
 
-// TN450Parser is a parser for TN450 (and possibly TN451 ...) Thompson underway feed lines.
-type TN450Parser struct {
+// TN448Parser is a parser for TN448 (and possibly TN449 ...) Thompson underway feed lines.
+type TN448Parser struct {
 	DataManager
 }
 
-// NewTN450Parser returns a pointer to a TN450Parser struct. project is
+// NewTN448Parser returns a pointer to a TN448Parser struct. project is
 // the project or cruise name. interval is the per-feed rate limiting interval
 // in seconds.
-func NewTN450Parser(project string, interval time.Duration, now func() time.Time) Parser {
+func NewTN448Parser(project string, interval time.Duration, now func() time.Time) Parser {
 	metadata := tsdata.Tsdata{
 		Project:         project,
 		FileType:        "geo",
-		FileDescription: "TN450+ Thompson underway feed",
+		FileDescription: "TN448+ Thompson underway feed",
 		Comments:        []string{"RFC3339", "Latitude Decimal format", "Longitude Decimal format", "TSG temperature", "TSG conductivity", "TSG salinity", "PAR"},
 		Types:           []string{"time", "float", "float", "float", "float", "float", "float"},
 		Units:           []string{"NA", "deg", "deg", "C", "S/m", "PSU", "µE/m^2/s"},
 		Headers:         []string{"time", "lat", "lon", "temp", "conductivity", "salinity", "par"},
 	}
-	return &TN450Parser{
+	return &TN448Parser{
 		DataManager: *NewDataManager(metadata, interval),
 	}
 }
 
 // ParseLine parses a single underway feed line. Only lines ending with \n are
 // examined.
-func (p *TN450Parser) ParseLine(line string) (d Data) {
+func (p *TN448Parser) ParseLine(line string) (d Data) {
 	if len(line) == 0 {
 		return
 	}
@@ -56,30 +56,30 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 	// Parse time
 	timeFields := strings.Split(fields[1], ",")
 	if len(timeFields) != 7 {
-		p.AddError(fmt.Errorf("TN450Parser: bad GNZDA: line=%q", clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad GNZDA: line=%q", clean))
 		return
 	}
 	if len(timeFields[1]) != 9 {
-		p.AddError(fmt.Errorf("TN450Parser: bad GNZDA: line=%q", clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad GNZDA: line=%q", clean))
 		return
 	}
 	timestr := timeFields[1][:2] + ":" + timeFields[1][2:4] + ":" + timeFields[1][4:6]
 	datestr := timeFields[4] + "-" + timeFields[3] + "-" + timeFields[2]
 	t, err := time.Parse(time.RFC3339, datestr+"T"+timestr+"Z")
 	if err != nil {
-		p.AddError(fmt.Errorf("TN450Parser: bad GNZDA: %v: line=%q", err, clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad GNZDA: %v: line=%q", err, clean))
 		return
 	}
 
 	// Latitude and Longitude
 	latLonFields := strings.Split(fields[2], ",")
 	if len(latLonFields) != 15 {
-		p.AddError(fmt.Errorf("TN450Parser: bad GNGGA: line=%q", clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad GNGGA: line=%q", clean))
 		return
 	} else {
 		latdd, latddErr := geo.GGALat2DD(latLonFields[2], latLonFields[3])
 		if latddErr != nil {
-			p.AddError(fmt.Errorf("TN450Parser: bad GNGGA lat: %v: line=%q", latddErr, line))
+			p.AddError(fmt.Errorf("TN448Parser: bad GNGGA lat: %v: line=%q", latddErr, line))
 			return
 		}
 		p.AddValue("lat", latdd)
@@ -87,7 +87,7 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 		// Longitude
 		londd, londdErr := geo.GGALon2DD(latLonFields[4], latLonFields[5])
 		if londdErr != nil {
-			p.AddError(fmt.Errorf("TN450Parser: bad GNGGA lon: %v: line=%q", londdErr, line))
+			p.AddError(fmt.Errorf("TN448Parser: bad GNGGA lon: %v: line=%q", londdErr, line))
 			return
 		}
 		p.AddValue("lon", londd)
@@ -96,7 +96,7 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 	// // Temperature
 	tsgFields := strings.Split(fields[3], ",")
 	if len(tsgFields) != 3 && len(tsgFields) != 4 {
-		p.AddError(fmt.Errorf("TN450Parser: bad TSG: line=%q", clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad TSG: line=%q", clean))
 		p.AddValue("temp", tsdata.NA)
 		p.AddValue("conductivity", tsdata.NA)
 		p.AddValue("salinity", tsdata.NA)
@@ -104,7 +104,7 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 		tempStr := strings.TrimSpace(tsgFields[0])
 		_, floatErr := strconv.ParseFloat(strings.TrimSpace(tsgFields[0]), 64)
 		if floatErr != nil {
-			p.AddError(fmt.Errorf("TN450Parser: bad float: line=%q", line))
+			p.AddError(fmt.Errorf("TN448Parser: bad float: line=%q", line))
 			p.AddValue("temp", tsdata.NA)
 		} else {
 			p.AddValue("temp", tempStr)
@@ -114,7 +114,7 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 		condStr := strings.TrimSpace(tsgFields[1])
 		_, floatErr = strconv.ParseFloat(condStr, 64)
 		if floatErr != nil {
-			p.AddError(fmt.Errorf("TN450Parser: bad float: line=%q", line))
+			p.AddError(fmt.Errorf("TN448Parser: bad float: line=%q", line))
 			p.AddValue("conductivity", tsdata.NA)
 		} else {
 			p.AddValue("conductivity", condStr)
@@ -124,7 +124,7 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 		salStr := strings.TrimSpace(tsgFields[2])
 		_, floatErr = strconv.ParseFloat(salStr, 64)
 		if floatErr != nil {
-			p.AddError(fmt.Errorf("TN450Parser: bad float: line=%q", line))
+			p.AddError(fmt.Errorf("TN448Parser: bad float: line=%q", line))
 			p.AddValue("salinity", tsdata.NA)
 		} else {
 			p.AddValue("salinity", salStr)
@@ -140,18 +140,18 @@ func (p *TN450Parser) ParseLine(line string) (d Data) {
 	// places.
 	parField := fields[4]
 	if parField == "" {
-		p.AddError(fmt.Errorf("TN450Parser: bad PPAR: line=%q", clean))
+		p.AddError(fmt.Errorf("TN448Parser: bad PPAR: line=%q", clean))
 		p.AddValue("par", tsdata.NA)
 	} else {
 		parStr := strings.TrimSpace(parField)
 		parNumberFields := strings.Split(parField, ".")
 		_, floatErr := strconv.ParseFloat(parStr, 64)
 		if floatErr != nil || len(parNumberFields) != 2 || len(parNumberFields[1]) != 3 {
-			p.AddError(fmt.Errorf("TN450Parser: bad PAR float: line=%q", line))
+			p.AddError(fmt.Errorf("TN448Parser: bad PAR float: line=%q", line))
 			p.AddValue("par", tsdata.NA)
-			// PAR may be unreliable on TN450+. We'll be reading every second, so just completely
+			// PAR may be unreliable on TN448+. We'll be reading every second, so just completely
 			// reject the entire line if bad PAR. On G5 about 1 in 4 PAR was good, so if
-			// we encounter the same issue on TN450+ we'll be ready.
+			// we encounter the same issue on TN448+ we'll be ready.
 			return
 		} else {
 			p.AddValue("par", parStr)

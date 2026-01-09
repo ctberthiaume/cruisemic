@@ -9,27 +9,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testTN450LineData struct {
+type testTN448LineData struct {
 	name     string
 	input    string
 	expected map[string][]string
 }
 
-func TestTN450ParserRegistry(t *testing.T) {
+func TestTN448ParserRegistry(t *testing.T) {
 	assert := assert.New(t)
-	constructor, ok := ParserRegistry["TN450"]
-	assert.True(ok, "TN450 parser is registered")
+	constructor, ok := ParserRegistry["TN448"]
+	assert.True(ok, "TN448 parser is registered")
 	if ok {
 		p := constructor("testproject", 0, time.Now)
-		_, ok = p.(*TN450Parser)
-		assert.True(ok, "TN450 parser is registered")
+		_, ok = p.(*TN448Parser)
+		assert.True(ok, "TN448 parser is registered")
 	}
 }
 
-func TestTN450Lines(t *testing.T) {
-	testData := []testTN450LineData{
+func TestTN448Lines(t *testing.T) {
+	testData := []testTN448LineData{
 		{
-			"TN450 line with extra tsg field",
+			"TN448 line with extra tsg field",
 			`$SEAFLOW::$GNZDA,213218.00,31,10,2023,00,00*6D::$GNGGA,213218.00,4737.578758,N,12222.827136,W,2,15,0.8,12.181,M,-22.0,M,4.0,0402*4F:: 15.0526,  3.78840,  30.4126, 1501.506::
 `,
 			map[string][]string{
@@ -176,15 +176,15 @@ $SEAFLOW::$GNZDA,213310.00,12,01,2023,00,00*6D::$GNGGA,213310.00,4738.983141,N,1
 		},
 	}
 	for _, tt := range testData {
-		t.Run(tt.name, createTN450LinesTest(t, tt))
+		t.Run(tt.name, createTN448LinesTest(t, tt))
 	}
 }
 
-func createTN450LinesTest(t *testing.T, tt testTN450LineData) func(*testing.T) {
+func createTN448LinesTest(t *testing.T, tt testTN448LineData) func(*testing.T) {
 	assert := assert.New(t)
 
 	return func(t *testing.T) {
-		p := NewTN450Parser("test", 0, time.Now)
+		p := NewTN448Parser("test", 0, time.Now)
 		store, _ := storage.NewMemStorage()
 		r := strings.NewReader(tt.input)
 		err := ParseLines(p, r, store, true, false)
