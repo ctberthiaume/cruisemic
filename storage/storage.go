@@ -221,6 +221,16 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 
+	// Set permissions on the temp file before renaming so the file is never
+	// visible at the destination path with incorrect permissions.
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if err := os.Chmod(tempFile.Name(), srcInfo.Mode()); err != nil {
+		return err
+	}
+
 	// Atomically rename the temporary file to the final destination
 	return os.Rename(tempFile.Name(), dst)
 }

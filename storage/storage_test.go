@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,7 +16,7 @@ type StorageTestSuite struct {
 }
 
 func (suite *StorageTestSuite) SetupTest() {
-	tmpDir, err := ioutil.TempDir("", "cruisemic.storage")
+	tmpDir, err := os.MkdirTemp("", "cruisemic.storage")
 	if err != nil {
 		panic(err)
 	}
@@ -71,17 +70,17 @@ func (suite *StorageTestSuite) TestHeader() {
 		assert.Equal(suite.T(), expectedPath, store.FeedPath(feed), "FeedPath should return correct path")
 	}
 
-	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-empty.tab"))
+	b, err := os.ReadFile(filepath.Join(suite.storeDir, "test-empty.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["empty"], string(b), "empty header should not contain header text")
 	}
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-header.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-header.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["header"]+"\n", string(b), "header text should have LF added")
 	}
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-headerLF.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-headerLF.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["headerLF"], string(b), "header text should not have LF added")
@@ -99,17 +98,17 @@ func (suite *StorageTestSuite) TestHeader() {
 		return
 	}
 
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-empty.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-empty.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["empty"], string(b), "reopened empty header should not contain header text")
 	}
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-header.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-header.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["header"]+"\n", string(b), "reopened header text should have LF added")
 	}
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-headerLF.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-headerLF.tab"))
 	assert.Nil(suite.T(), err)
 	if err == nil {
 		assert.Equal(suite.T(), feedHeaders["headerLF"], string(b), "reopened header text should not have LF added")
@@ -134,7 +133,7 @@ func (suite *StorageTestSuite) TestWriteStringWithHeader() {
 		return
 	}
 
-	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
+	b, err := os.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -159,7 +158,7 @@ func (suite *StorageTestSuite) TestWriteString() {
 		return
 	}
 
-	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
+	b, err := os.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -189,7 +188,7 @@ func (suite *StorageTestSuite) TestWriteStringTwice() {
 		return
 	}
 
-	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
+	b, err := os.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -209,7 +208,7 @@ func (suite *StorageTestSuite) TestFlush() {
 		return
 	}
 
-	b, err := ioutil.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
+	b, err := os.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
@@ -220,10 +219,41 @@ func (suite *StorageTestSuite) TestFlush() {
 	if err != nil {
 		return
 	}
-	b, err = ioutil.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
+	b, err = os.ReadFile(filepath.Join(suite.storeDir, "test-feed.tab"))
 	assert.Nil(suite.T(), err)
 	if err != nil {
 		return
 	}
 	assert.Equal(suite.T(), "some text to write\n", string(b), "buffered text should be written after calling Flush")
+}
+
+func (suite *StorageTestSuite) TestCopyFilePreservesPermissions() {
+	// Create a source file with specific permissions
+	srcPath := filepath.Join(suite.tmpDir, "src.txt")
+	err := os.WriteFile(srcPath, []byte("hello world\n"), 0755)
+	assert.Nil(suite.T(), err)
+	if err != nil {
+		return
+	}
+
+	dstPath := filepath.Join(suite.tmpDir, "dst.txt")
+	err = CopyFile(srcPath, dstPath)
+	assert.Nil(suite.T(), err)
+	if err != nil {
+		return
+	}
+
+	// Verify content was copied
+	b, err := os.ReadFile(dstPath)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), "hello world\n", string(b))
+
+	// Verify permissions match the source
+	srcInfo, err := os.Stat(srcPath)
+	assert.Nil(suite.T(), err)
+	dstInfo, err := os.Stat(dstPath)
+	assert.Nil(suite.T(), err)
+	if err == nil {
+		assert.Equal(suite.T(), srcInfo.Mode(), dstInfo.Mode(), "destination file should have same permissions as source")
+	}
 }

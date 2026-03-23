@@ -1,6 +1,6 @@
 module github.com/ctberthiaume/cruisemic
 
-go 1.13
+go 1.16
 
 require (
 	github.com/ctberthiaume/tsdata v0.3.1
